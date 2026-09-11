@@ -28,13 +28,21 @@ export function SavedDrawer({
   useEffect(() => {
     if (!open) return;
     opener.current = document.activeElement as HTMLElement | null;
-    panel.current?.focus();
+    // While the slide-in transition runs the panel still computes as hidden,
+    // and hidden elements refuse focus. Try at once (this is what works when
+    // transitions are disabled by the reduced-motion rule) and again when the
+    // transition ends.
+    const el = panel.current;
+    const focusPanel = () => el?.focus();
+    focusPanel();
+    el?.addEventListener("transitionend", focusPanel, { once: true });
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") close.current();
     };
     window.addEventListener("keydown", onKey);
     return () => {
+      el?.removeEventListener("transitionend", focusPanel);
       window.removeEventListener("keydown", onKey);
       opener.current?.focus();
     };
@@ -45,7 +53,7 @@ export function SavedDrawer({
       <div
         onClick={onClose}
         aria-hidden="true"
-        className={`fixed inset-0 z-40 bg-ink/30 transition-opacity ${
+        className={`fixed inset-0 z-40 bg-black/40 transition-opacity ${
           open ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
       />

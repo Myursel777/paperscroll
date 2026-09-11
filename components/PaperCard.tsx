@@ -92,7 +92,7 @@ export function PaperCard({
           href={paper.id}
           target="_blank"
           rel="noreferrer"
-          className="flex-1 rounded-full px-5 py-3 text-center text-sm font-semibold text-paper transition active:scale-95"
+          className="flex-1 rounded-full px-5 py-3 text-center text-sm font-semibold text-onAccent transition active:scale-95"
           style={{ background: accent }}
         >
           Read paper

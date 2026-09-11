@@ -5,6 +5,19 @@ so the git history can be read without re-deriving the reasoning.
 
 ## 2026-09-11: Phase 1 started
 
+- **Dark mode.** The four design tokens (paper, ink, muted, line) are now CSS
+  variables in `globals.css`, light by default and inverted under
+  `prefers-color-scheme: dark`. Tailwind reads them as RGB channels
+  (`tailwind.config.ts`), so every existing class and opacity modifier keeps
+  working and no component had to change its classes. The few inline hex
+  colours in the header chips became token classes. Text on accent-coloured
+  buttons uses a fixed light colour in both themes (`text-onAccent`), and the
+  browser theme colour follows the scheme. Field accents and layout are
+  unchanged. There is no toggle yet; that belongs with account settings.
+- **Drawer focus fix.** Focusing the saved panel had to wait one frame; in the
+  frame it becomes visible the browser still computes it as hidden and
+  refuses focus.
+
 - **Accessibility pass.** One `h1` per page (the PaperScroll wordmark; card
   titles are `h2` and each card is labelled by its title), the feed sits in a
   `main`. The saved panel is a real dialog: role and label, Escape closes it,

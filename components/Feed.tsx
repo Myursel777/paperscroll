@@ -251,12 +251,9 @@ export function Feed() {
           <button
             onClick={goForYou}
             aria-pressed={mode === "foryou"}
-            className="whitespace-nowrap rounded-full border px-4 py-1.5 text-sm font-semibold transition"
-            style={
-              mode === "foryou"
-                ? { background: "#16130F", color: "#FBF8F1", borderColor: "#16130F" }
-                : { borderColor: "#E7E0D4", color: "#16130F" }
-            }
+            className={`whitespace-nowrap rounded-full border px-4 py-1.5 text-sm font-semibold transition ${
+              mode === "foryou" ? "border-ink bg-ink text-paper" : "border-line text-ink"
+            }`}
           >
             ✦ For You
           </button>

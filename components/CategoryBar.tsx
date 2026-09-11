@@ -22,12 +22,10 @@ export function CategoryBar({
             key={f.id}
             onClick={() => onPick(f.id)}
             aria-pressed={on}
-            className="whitespace-nowrap rounded-full border px-4 py-1.5 text-sm font-medium transition"
-            style={
-              on
-                ? { background: f.accent, color: "#FBF8F1", borderColor: f.accent }
-                : { borderColor: "#E7E0D4", color: "#6B6358" }
-            }
+            className={`whitespace-nowrap rounded-full border px-4 py-1.5 text-sm font-medium transition ${
+              on ? "text-onAccent" : "border-line text-muted"
+            }`}
+            style={on ? { background: f.accent, borderColor: f.accent } : undefined}
           >
             {f.label}
           </button>

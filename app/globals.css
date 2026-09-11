@@ -2,8 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Design tokens as RGB channels. Light is the default; the dark set applies
+   when the device prefers dark. Same accents, same layout, inverted paper. */
 :root {
   color-scheme: light;
+  --paper: 251 248 241; /* #FBF8F1 */
+  --ink: 22 19 15; /* #16130F */
+  --muted: 107 99 88; /* #6B6358 */
+  --line: 231 224 212; /* #E7E0D4 */
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --paper: 22 19 15; /* #16130F */
+    --ink: 251 248 241; /* #FBF8F1 */
+    --muted: 160 152 140; /* #A0988C */
+    --line: 58 53 46; /* #3A352E */
+  }
 }
 
 html,
@@ -49,7 +64,7 @@ body {
 .text-page {
   font-size: 1rem;
   line-height: 1.7;
-  color: rgb(22 19 15 / 0.85);
+  color: rgb(var(--ink) / 0.85);
 }
 .text-page > * + * {
   margin-top: 1rem;

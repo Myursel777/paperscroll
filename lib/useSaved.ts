@@ -10,7 +10,9 @@ export type SavedPaper = Paper & { savedAt: string };
 function read(): SavedPaper[] {
   if (typeof window === "undefined") return [];
   try {
-    return JSON.parse(localStorage.getItem(KEY) ?? "[]");
+    const list: Partial<SavedPaper>[] = JSON.parse(localStorage.getItem(KEY) ?? "[]");
+    // Papers saved before categories and tags existed get empty lists.
+    return list.map((p) => ({ ...p, categories: p.categories ?? [], tags: p.tags ?? [] }) as SavedPaper);
   } catch {
     return [];
   }

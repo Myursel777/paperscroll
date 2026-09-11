@@ -60,6 +60,8 @@ describe("arXiv client", () => {
     expect(papers.map((p) => p.title)).toEqual(["Paper 1", "Paper 2"]);
     expect(papers[0].pdfLink).toBe("http://arxiv.org/pdf/1");
     expect(papers[0].primaryCategory).toBe("cs.AI");
+    expect(papers[0].categories).toEqual(["cs.AI", "cs.LG"]);
+    expect(papers[0].tags).toEqual([]); // tags are added by the API route, not the client
   });
 
   it("handles a feed with a single entry (parsed as an object, not an array)", async () => {

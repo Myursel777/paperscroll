@@ -10,6 +10,10 @@ export type Paper = {
   published: string; // ISO date
   pdfLink: string | null;
   primaryCategory: string | null;
+  /** Every arXiv category on the entry, primary first (e.g. ["cs.CV", "cs.LG"]). */
+  categories: string[];
+  /** Topic ids from lib/topics.ts, filled in by the API route (see lib/tagger.ts). */
+  tags: string[];
 };
 
 export type Field = {
@@ -91,6 +95,14 @@ export function entryToPaper(entry: any): Paper {
   const clean = (s: string | undefined) =>
     (s ?? "").replace(/\s+/g, " ").trim();
 
+  const primary: string | null = entry["arxiv:primary_category"]?.term ?? null;
+  const catRaw = entry.category;
+  const categories = (Array.isArray(catRaw) ? catRaw : catRaw ? [catRaw] : [])
+    .map((c: any) => c?.term)
+    .filter((t: unknown): t is string => typeof t === "string");
+  // Primary first, no duplicates.
+  const allCats = Array.from(new Set([...(primary ? [primary] : []), ...categories]));
+
   return {
     id: clean(entry.id),
     title: clean(entry.title),
@@ -98,6 +110,8 @@ export function entryToPaper(entry: any): Paper {
     authors,
     published: clean(entry.published),
     pdfLink: pdf?.href ?? null,
-    primaryCategory: entry["arxiv:primary_category"]?.term ?? null,
+    primaryCategory: primary,
+    categories: allCats,
+    tags: [],
   };
 }

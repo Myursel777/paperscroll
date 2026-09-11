@@ -36,10 +36,10 @@ Everything here is free to run except the app store fees in Phase 6.
 Goal: every paper carries up to three tags from one fixed taxonomy, computed
 on the server, never in the browser while scrolling.
 
-- [ ] Taxonomy of about fifty topics in `lib/topics.ts`: id, label, parent field, description, hinting arXiv categories, keyword patterns, and the arXiv search each topic maps to
-- [ ] Tagger v1 (rules): arXiv categories plus keyword patterns. Target: 9 of 10 sampled papers look right
+- [x] Taxonomy of about fifty topics in `lib/topics.ts`: id, label, parent field, description, hinting arXiv categories, keyword patterns, and the arXiv search each topic maps to
+- [x] Tagger v1 (rules): keyword patterns weighted by title and abstract, arXiv categories as a tie-breaker, max three tags. Quality check against a sample is a separate item below
 - [ ] Tagger v2 (embeddings): cosine between abstract and topic descriptions, threshold, max three tags
-- [ ] Tags stored with the paper (route cache first, `paper_tags` table after Phase 3)
+- [x] Tags returned with every paper by the API route (a `paper_tags` table comes with Phase 3)
 - [ ] Tag chips on cards, tap to filter, topics row under the field chips
 - [ ] Evaluation: hand-label 200 papers, precision and recall per topic, tune threshold
 

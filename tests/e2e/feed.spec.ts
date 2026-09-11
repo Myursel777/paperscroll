@@ -22,6 +22,8 @@ function fakePapers(fieldId: string, start: number, max: number) {
       published: new Date(Date.now() - n * 3_600_000).toISOString(),
       pdfLink: `http://arxiv.org/pdf/${field.id}.${n}`,
       primaryCategory: field.cats[0],
+      categories: field.cats,
+      tags: n % 2 === 0 ? ["benchmarks"] : [],
     };
   });
 }

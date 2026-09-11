@@ -5,6 +5,21 @@ so the git history can be read without re-deriving the reasoning.
 
 ## 2026-09-11: Phase 2 started (topic tagging)
 
+- **Taxonomy** (`lib/topics.ts`): 56 topics, 7 to 15 per field. A topic has a
+  label, a one-sentence description, hinting arXiv categories, keyword
+  patterns, and the arXiv search it maps to when tapped. Kept valid by
+  `tests/unit/topics.test.ts`.
+- **Rule-based tagger** (`lib/tagger.ts`): +3 per pattern found in the title,
+  +1 per pattern in the abstract, +1 if the paper carries one of the topic's
+  categories and at least one pattern matched. A topic needs 2 points, so a
+  title hit is enough and a single stray word in the abstract is not. At most
+  three tags, best first, ties in taxonomy order. `scoreTopics` also returns
+  the patterns that fired, so every tag can be explained.
+- **Plumbing**: `Paper` gained `categories` (all arXiv categories, parsed
+  from the feed) and `tags`. The API route fills tags on every response,
+  fresh or stale. Papers saved before this change get empty lists when read
+  back from localStorage.
+
 - Repository pushed to GitHub (Myursel777/paperscroll). The first CI run
   passed in about two minutes, including the end-to-end suite in Firefox,
   which cannot start on the development machine.

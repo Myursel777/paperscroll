@@ -14,6 +14,8 @@ export function atomFeed(ids: string[], category = "cs.AI") {
         <author><name>Author ${id}</name></author>
         <link title="pdf" href="http://arxiv.org/pdf/${id}" rel="related" type="application/pdf"/>
         <arxiv:primary_category xmlns:arxiv="http://arxiv.org/schemas/atom" term="${category}"/>
+        <category term="${category}"/>
+        <category term="cs.LG"/>
       </entry>`,
     )
     .join("");
@@ -31,6 +33,8 @@ export function paper(over: Partial<Paper> & { id: string }): Paper {
     published: "2026-09-10T00:00:00Z",
     pdfLink: null,
     primaryCategory: "cs.AI",
+    categories: ["cs.AI"],
+    tags: [],
     ...over,
   };
 }

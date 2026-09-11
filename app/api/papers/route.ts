@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { fieldById } from "@/lib/arxiv";
 import { ArxivError, buildQueryUrl, createArxivClient } from "@/lib/arxivClient";
 import { createRateLimiter } from "@/lib/rateLimit";
+import { tagPapers } from "@/lib/tagger";
 
 // GET /api/papers?field=ai-ml&q=&start=0&max=12
 //
 // Thin proxy in front of arXiv. All the care about not hammering arXiv lives
 // in lib/arxivClient.ts; this file only parses the request, applies the
 // per-visitor throttle, and shapes the JSON reply:
+// Every paper carries `tags`, the topic ids from lib/tagger.ts.
 //   { papers }                        normal
 //   { papers, stale: true }           arXiv failed, expired cache served
 //   { papers: [], error, retryAfter } nothing to show (HTTP 429/502/503)
@@ -41,7 +43,8 @@ export async function GET(req: NextRequest) {
   });
 
   try {
-    const { papers, stale } = await arxiv.getPapers(url);
+    const { papers: raw, stale } = await arxiv.getPapers(url);
+    const papers = tagPapers(raw);
     return NextResponse.json(stale ? { papers, stale: true } : { papers });
   } catch (err) {
     if (err instanceof ArxivError && err.status === 429) {

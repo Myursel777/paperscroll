@@ -149,6 +149,37 @@ test("tapping a topic tag searches that topic in its field", async ({ page }) =>
   await expect(chip).toHaveAttribute("aria-pressed", "false");
 });
 
+test("chip rows scroll sideways with the wheel and the edge arrows", async ({ page }) => {
+  await mockApi(page);
+  await page.setViewportSize({ width: 640, height: 800 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  await expect(cards(page)).toHaveCount(12);
+
+  const fields = page.getByRole("group", { name: "Field of study" });
+  const robotics = fields.getByRole("button", { name: "Robotics" });
+  await expect(robotics).not.toBeInViewport();
+
+  // The right-edge arrow walks to the end of the row, where it disappears
+  // and the left arrow takes over.
+  const right = page.getByRole("button", { name: "Scroll field of study right", includeHidden: true });
+  const left = page.getByRole("button", { name: "Scroll field of study left", includeHidden: true });
+  await expect(right).toHaveCount(1);
+  for (let i = 0; i < 5 && (await right.count()) > 0; i++) {
+    await right.click({ timeout: 2000 }).catch(() => {});
+    await page.waitForTimeout(100);
+  }
+  await expect(robotics).toBeInViewport();
+  await expect(right).toHaveCount(0);
+  await expect(left).toHaveCount(1);
+
+  // A vertical wheel over the row scrolls it sideways (here: back to the start).
+  const atEnd = await fields.evaluate((el) => el.scrollLeft);
+  await fields.hover();
+  await page.mouse.wheel(0, -1000);
+  await expect.poll(() => fields.evaluate((el) => el.scrollLeft)).toBeLessThan(atEnd);
+});
+
 test("arrow keys move one card at a time", async ({ page }) => {
   await mockApi(page);
   await page.goto("/");

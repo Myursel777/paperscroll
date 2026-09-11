@@ -5,6 +5,18 @@ so the git history can be read without re-deriving the reasoning.
 
 ## 2026-09-11: Phase 2 started (topic tagging)
 
+- **Chip rows you can actually scroll.** The field and topic rows overflow
+  sideways with the scrollbar hidden, so with a mouse there was no visible way
+  to reach the chips off-screen. `components/ChipRow.tsx` now wraps both
+  rows: a vertical mouse wheel over a row scrolls it sideways (registered as a
+  native, non-passive listener so the page does not scroll too), an arrow
+  button over a soft fade appears at any edge that has more chips and scrolls
+  by most of a row width, and the selected chip is scrolled into view whenever
+  the selection changes, including when a tag on a card selects a topic that
+  was off-screen. The arrows are hidden from assistive technology and the tab
+  order because keyboard users reach every chip directly. Covered by an
+  end-to-end test at a 640 px viewport.
+
 - **Two bugs found by trying the app.** (1) The action buttons moved from card
   to card: a long title plus the six-line abstract could be taller than the
   card, so the middle overflowed and pushed the footer out of the card and

@@ -14,6 +14,7 @@ import { recommend, similarTo } from "@/lib/recommender";
 import { rankNeural } from "@/lib/neuralRecommender";
 import { PaperCard } from "@/components/PaperCard";
 import { CategoryBar } from "@/components/CategoryBar";
+import { ChipRow } from "@/components/ChipRow";
 import { SavedDrawer } from "@/components/SavedDrawer";
 import { SkeletonCard } from "@/components/SkeletonCard";
 
@@ -316,11 +317,7 @@ export function Feed() {
         </div>
 
         {mode === "field" && fieldTopics.length > 0 && (
-          <div
-            role="group"
-            aria-label="Topics in this field"
-            className="mx-auto mt-2 flex max-w-3xl gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          >
+          <ChipRow label="Topics in this field" activeKey={topicId} className="mx-auto mt-2 max-w-3xl">
             {fieldTopics.map((t) => {
               const on = t.id === topicId;
               return (
@@ -338,7 +335,7 @@ export function Feed() {
                 </button>
               );
             })}
-          </div>
+          </ChipRow>
         )}
 
         {mode === "similar" && seed && (

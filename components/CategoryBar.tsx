@@ -1,6 +1,7 @@
 "use client";
 
 import { FIELDS } from "@/lib/arxiv";
+import { ChipRow } from "@/components/ChipRow";
 
 export function CategoryBar({
   active,
@@ -10,11 +11,7 @@ export function CategoryBar({
   onPick: (id: string) => void;
 }) {
   return (
-    <div
-      role="group"
-      aria-label="Field of study"
-      className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-    >
+    <ChipRow label="Field of study" activeKey={active}>
       {FIELDS.map((f) => {
         const on = f.id === active;
         return (
@@ -31,6 +28,6 @@ export function CategoryBar({
           </button>
         );
       })}
-    </div>
+    </ChipRow>
   );
 }

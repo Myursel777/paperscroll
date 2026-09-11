@@ -10,3 +10,9 @@ next-env.d.ts
 __pycache__/
 *.pyc
 .venv/
+
+# test output
+/test-results
+/playwright-report
+/playwright/.cache
+/coverage

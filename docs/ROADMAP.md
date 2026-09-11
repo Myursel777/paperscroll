@@ -40,7 +40,7 @@ on the server, never in the browser while scrolling.
 - [x] Tagger v1 (rules): keyword patterns weighted by title and abstract, arXiv categories as a tie-breaker, max three tags. Quality check against a sample is a separate item below
 - [ ] Tagger v2 (embeddings): cosine between abstract and topic descriptions, threshold, max three tags
 - [x] Tags returned with every paper by the API route (a `paper_tags` table comes with Phase 3)
-- [ ] Tag chips on cards, tap to filter, topics row under the field chips
+- [x] Tag chips on cards, tap to search that topic, topics row under the field chips
 - [ ] Evaluation: hand-label 200 papers, precision and recall per topic, tune threshold
 
 ## Phase 3: accounts (Supabase free tier)

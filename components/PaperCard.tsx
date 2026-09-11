@@ -2,6 +2,7 @@
 
 import { useId, useState } from "react";
 import type { Paper } from "@/lib/arxiv";
+import { topicById } from "@/lib/topics";
 
 function fmtDate(iso: string) {
   const d = new Date(iso);
@@ -22,6 +23,7 @@ export function PaperCard({
   saved,
   onToggleSave,
   onMoreLikeThis,
+  onTopic,
 }: {
   paper: Paper;
   accent: string;
@@ -30,9 +32,12 @@ export function PaperCard({
   saved: boolean;
   onToggleSave: () => void;
   onMoreLikeThis?: () => void;
+  /** Called with a topic id when a tag chip is tapped. */
+  onTopic?: (topicId: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const titleId = useId();
+  const topics = (paper.tags ?? []).map(topicById).filter((t) => t !== undefined);
 
   return (
     <article
@@ -66,6 +71,24 @@ export function PaperCard({
           {paper.authors.length > 4 ? " et al." : ""}
           {paper.published ? ` · ${fmtDate(paper.published)}` : ""}
         </p>
+
+        {/* Topic tags from the server-side tagger. Tapping one searches that topic. */}
+        {topics.length > 0 && (
+          <ul aria-label="Topics" className="mt-3 flex flex-wrap gap-2">
+            {topics.map((t) => (
+              <li key={t.id}>
+                <button
+                  onClick={() => onTopic?.(t.id)}
+                  title={t.description}
+                  aria-label={`More papers about ${t.label}`}
+                  className="rounded-full border border-line px-2.5 py-0.5 text-xs font-medium text-muted transition hover:border-ink hover:text-ink"
+                >
+                  {t.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
 
         <p
           className={`mt-6 text-base leading-relaxed text-ink/80 ${

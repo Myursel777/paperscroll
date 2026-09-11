@@ -8,6 +8,7 @@ import {
   fieldForCategory,
   type Paper,
 } from "@/lib/arxiv";
+import { topicById, topicsForField } from "@/lib/topics";
 import { useSaved } from "@/lib/useSaved";
 import { recommend, similarTo } from "@/lib/recommender";
 import { rankNeural } from "@/lib/neuralRecommender";
@@ -51,6 +52,10 @@ export function Feed() {
 
   const [query, setQuery] = useState("");
   const [searchInput, setSearchInput] = useState("");
+  // A selected topic replaces the search: its arXiv query is what gets sent.
+  const [topicId, setTopicId] = useState<string | null>(null);
+  const activeTopic = topicId ? topicById(topicId) : undefined;
+  const effectiveQuery = activeTopic ? activeTopic.query : query;
   const [papers, setPapers] = useState<Paper[]>([]);
   const [start, setStart] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -60,6 +65,7 @@ export function Feed() {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const field = fieldById(fieldId);
+  const fieldTopics = topicsForField(fieldId);
   const { saved, isSaved, toggle, remove } = useSaved();
   const sentinel = useRef<HTMLDivElement | null>(null);
   const feedRef = useRef<HTMLDivElement | null>(null);
@@ -69,6 +75,21 @@ export function Feed() {
   loadingRef.current = loading;
   const drawerOpenRef = useRef(false);
   drawerOpenRef.current = drawerOpen;
+
+  // The header is fixed and its height changes (topics row, "Similar to"
+  // row). It is measured into the --header-h variable on the feed, which
+  // globals.css uses for the feed padding, the snap offset, and card height.
+  const headerRef = useRef<HTMLDivElement | null>(null);
+  const [headerH, setHeaderH] = useState(112);
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const measure = () => setHeaderH(Math.round(el.getBoundingClientRect().height));
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // Which fields to draw the "For You" candidate pool from: the ones you've
   // saved from most, or a sensible default before you've saved anything.
@@ -88,7 +109,7 @@ export function Feed() {
   const loadField = useCallback(
     async (reset: boolean) => {
       const from = reset ? 0 : start;
-      const { papers: incoming, error: err } = await fetchField(fieldId, query, from, PER_PAGE);
+      const { papers: incoming, error: err } = await fetchField(fieldId, effectiveQuery, from, PER_PAGE);
       if (err) setError(err);
       // arXiv pages can overlap when new papers land between requests, so
       // appended pages are de-duplicated by id.
@@ -96,7 +117,7 @@ export function Feed() {
       setStart(from + PER_PAGE);
       if (incoming.length < PER_PAGE) setDone(true);
     },
-    [fieldId, query, start],
+    [fieldId, effectiveQuery, start],
   );
 
   // These requests are serialised and cached by the API route, so fanning
@@ -145,7 +166,7 @@ export function Feed() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, fieldId, query, seed, attempt]);
+  }, [mode, fieldId, effectiveQuery, seed, attempt]);
 
   // Arrow keys move one card at a time. Native arrow scrolling only moves a
   // few pixels and the snap pulls it straight back, so we handle it here.
@@ -158,8 +179,11 @@ export function Feed() {
       const feed = feedRef.current;
       if (!feed) return;
 
+      // Cards snap to the top of the feed's padding box, which is the header
+      // height below the scrollport's top, so positions are offset by it.
+      const pad = parseFloat(getComputedStyle(feed).paddingTop) || 0;
       const tops = Array.from(feed.querySelectorAll<HTMLElement>(":scope > .snap-card")).map(
-        (c) => c.offsetTop,
+        (c) => c.offsetTop - pad,
       );
       const here = feed.scrollTop;
       const next =
@@ -198,7 +222,24 @@ export function Feed() {
 
   const goField = (id: string) => {
     setSeed(null);
+    setTopicId(null);
     setFieldId(id);
+    setMode("field");
+  };
+  // Tapping a topic (in the topics row or on a card) searches that topic in
+  // its own field. Tapping the active topic again clears it.
+  const goTopic = (id: string) => {
+    const topic = topicById(id);
+    if (!topic) return;
+    if (topicId === id && mode === "field") {
+      setTopicId(null);
+      return;
+    }
+    setSeed(null);
+    setQuery("");
+    setSearchInput("");
+    setFieldId(topic.field);
+    setTopicId(id);
     setMode("field");
   };
   const goForYou = () => {
@@ -216,7 +257,7 @@ export function Feed() {
 
   return (
     <div className="relative">
-      <div className="fixed inset-x-0 top-0 z-30 bg-paper/80 px-4 py-3 backdrop-blur">
+      <div ref={headerRef} className="fixed inset-x-0 top-0 z-30 bg-paper/80 px-4 py-3 backdrop-blur">
         <div className="mx-auto flex max-w-3xl items-center gap-3">
           <h1 className="font-display text-lg font-semibold">
             Paper<span style={{ color: field.accent }}>Scroll</span>
@@ -225,7 +266,7 @@ export function Feed() {
             className="flex-1"
             onSubmit={(e) => {
               e.preventDefault();
-              goField(fieldId);
+              goField(fieldId); // also clears any active topic
               setQuery(searchInput.trim());
             }}
           >
@@ -262,6 +303,32 @@ export function Feed() {
           </div>
         </div>
 
+        {mode === "field" && fieldTopics.length > 0 && (
+          <div
+            role="group"
+            aria-label="Topics in this field"
+            className="mx-auto mt-2 flex max-w-3xl gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {fieldTopics.map((t) => {
+              const on = t.id === topicId;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => goTopic(t.id)}
+                  aria-pressed={on}
+                  title={t.description}
+                  className={`whitespace-nowrap rounded-full border px-3 py-1 text-xs font-medium transition ${
+                    on ? "" : "border-line text-muted hover:text-ink"
+                  }`}
+                  style={on ? { background: `${field.accent}22`, color: field.accent, borderColor: field.accent } : undefined}
+                >
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {mode === "similar" && seed && (
           <div className="mx-auto mt-2 flex max-w-3xl items-center gap-2 text-sm">
             <span className="truncate text-muted">
@@ -277,7 +344,7 @@ export function Feed() {
         )}
       </div>
 
-      <div ref={feedRef} className="feed pt-[112px]">
+      <div ref={feedRef} className="feed" style={{ "--header-h": `${headerH}px` } as React.CSSProperties}>
         {papers.map((p, i) => {
           const f = cardField(p);
           return (
@@ -290,6 +357,7 @@ export function Feed() {
               saved={isSaved(p.id)}
               onToggleSave={() => toggle(p)}
               onMoreLikeThis={() => goSimilar(p)}
+              onTopic={goTopic}
             />
           );
         })}

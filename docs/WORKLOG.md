@@ -5,6 +5,21 @@ so the git history can be read without re-deriving the reasoning.
 
 ## 2026-09-11: Phase 2 started (topic tagging)
 
+- **Topics in the UI.** Each card shows its tags as small chips under the
+  author line; tapping one switches to the topic's field and runs the
+  topic's arXiv search, so a topic is just another query like a field is.
+  A topics row under the field chips lists the topics of the active field;
+  the active one is highlighted in the field accent and tapping it again
+  clears it. Typing a search or picking a field clears the topic.
+- **Header geometry fix.** The header is fixed and the feed had a hard-coded
+  112 px top padding while cards were a full viewport tall and snapped to the
+  scrollport top. Result: the first 112 px of every card, the field stamp and
+  card number, sat hidden under the header. The header height is now
+  measured (ResizeObserver) into a `--header-h` variable; the feed uses it
+  for padding and scroll-padding and cards are `100dvh` minus that height,
+  so each card fits exactly below the header whatever rows it shows. The
+  end-to-end suite asserts the stamp is in the viewport.
+
 - **Taxonomy** (`lib/topics.ts`): 56 topics, 7 to 15 per field. A topic has a
   label, a one-sentence description, hinting arXiv categories, keyword
   patterns, and the arXiv search it maps to when tapped. Kept valid by

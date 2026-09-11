@@ -29,9 +29,13 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* The vertical snap feed. Each card is a full viewport that snaps into place. */
+/* The vertical snap feed. Each card fills the space below the fixed header
+   and snaps into place. --header-h is set by Feed.tsx from the measured
+   header height; the fallback matches the header without a topics row. */
 .feed {
   height: 100dvh;
+  padding-top: var(--header-h, 112px);
+  scroll-padding-top: var(--header-h, 112px);
   overflow-y: scroll;
   scroll-snap-type: y mandatory;
   scrollbar-width: none; /* Firefox */
@@ -41,7 +45,7 @@ body {
   display: none; /* Chrome/Safari */
 }
 .snap-card {
-  height: 100dvh;
+  height: calc(100dvh - var(--header-h, 112px));
   scroll-snap-align: start;
   scroll-snap-stop: always;
 }

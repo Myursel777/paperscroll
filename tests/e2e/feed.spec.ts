@@ -53,6 +53,8 @@ test("loads one page and stays on the first card", async ({ page }) => {
 
   await expect(cards(page)).toHaveCount(12);
   await expect(cards(page).first()).toContainText("AI & Machine Learning paper 0");
+  // The card sits below the fixed header, so its field stamp is visible.
+  await expect(cards(page).first().locator("header")).toBeInViewport();
 
   // Give a runaway infinite scroll time to show itself. It must not.
   await page.waitForTimeout(1500);
@@ -90,6 +92,22 @@ test("For You builds a feed from the saved fields", async ({ page }) => {
   // The pool is the saved paper's field, 20 candidates, minus the saved paper.
   await expect(cards(page)).toHaveCount(19);
   expect(calls.some((c) => c.get("max") === "20")).toBe(true);
+});
+
+test("tapping a topic tag searches that topic in its field", async ({ page }) => {
+  const calls = await mockApi(page);
+  await page.goto("/");
+  await cards(page).first().getByRole("button", { name: "More papers about Benchmarks and datasets" }).click();
+
+  await expect.poll(() => calls.some((c) => c.get("q") === "benchmark")).toBe(true);
+  const chip = page
+    .getByRole("group", { name: "Topics in this field" })
+    .getByRole("button", { name: "Benchmarks and datasets" });
+  await expect(chip).toHaveAttribute("aria-pressed", "true");
+
+  // Tapping the active topic again clears it.
+  await chip.click();
+  await expect(chip).toHaveAttribute("aria-pressed", "false");
 });
 
 test("arrow keys move one card at a time", async ({ page }) => {

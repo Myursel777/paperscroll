@@ -3,6 +3,34 @@
 Newest entry first. Each entry says what changed, why, and how it was checked,
 so the git history can be read without re-deriving the reasoning.
 
+## 2026-09-11: Phase 3 started (accounts)
+
+Decisions: Supabase free tier, email and password only, logged-out visitors
+keep the full feed with saves in the browser, local saves merge into the
+account on first login. The account system switches on only when the two
+public Supabase values are present in `.env.local`, so the site keeps working
+with zero setup.
+
+- **Foundations.** `lib/supabase/` holds a browser client, a server client
+  (cookies), and the on/off switch; `middleware.ts` refreshes the session on
+  every page request and redirects signed-out visitors away from account
+  pages (and signed-in ones away from login and sign-up). With no keys the
+  middleware does nothing.
+- **Database as one SQL file** (`supabase/migrations/0001_accounts.sql`):
+  profiles, collections, saved_papers, row-level security so every user sees
+  only their own rows, a trigger that creates a profile on sign-up, and a
+  `delete_own_account` function that runs with the definer's rights so the
+  app never needs the secret service-role key. `supabase/README.md` has the
+  ten-minute setup.
+- **Fake Supabase** (`scripts/fake-supabase.ts`): an in-memory stand-in for
+  the parts of the Supabase API the app uses (sign-up with email
+  confirmation, password login, refresh, recovery, the verify link and the
+  code exchange, the three tables with PostgREST filters and row-level
+  security, the delete RPC). Emails are recorded at `/_dev/emails` instead
+  of sent, which is how tests follow the link. A smoke script drove it
+  through 16 checks, all passing. It lets the account features be developed
+  and tested before a real project exists, and lets anyone run them offline.
+
 ## 2026-09-11: Phase 2 started (topic tagging)
 
 - **Chip rows you can actually scroll.** The field and topic rows overflow

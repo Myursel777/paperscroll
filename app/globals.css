@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  height: 100%;
+  background: theme("colors.paper");
+  color: theme("colors.ink");
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The vertical snap feed. Each card is a full viewport that snaps into place. */
+.feed {
+  height: 100dvh;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none; /* Firefox */
+}
+.feed::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+.snap-card {
+  height: 100dvh;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+/* Clamp the abstract to a readable preview, expandable on the card. */
+.clamp-6 {
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

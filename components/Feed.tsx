@@ -182,7 +182,7 @@ export function Feed() {
       // Cards snap to the top of the feed's padding box, which is the header
       // height below the scrollport's top, so positions are offset by it.
       const pad = parseFloat(getComputedStyle(feed).paddingTop) || 0;
-      const tops = Array.from(feed.querySelectorAll<HTMLElement>(":scope > .snap-card")).map(
+      const tops = Array.from(feed.querySelectorAll<HTMLElement>(":scope > .snap-card:not(.snap-off)")).map(
         (c) => c.offsetTop - pad,
       );
       const here = feed.scrollTop;
@@ -206,6 +206,10 @@ export function Feed() {
   // mount, which in WebKit raced the first load and doubled page one.
   useEffect(() => {
     if (mode !== "field" || !sentinel.current || done || papers.length === 0) return;
+    // The feed is the scroll container, so it must be the observer's root:
+    // with the viewport as root, the sentinel is clipped away as soon as it is
+    // scrolled out of the feed and no rootMargin can bring it back. The margin
+    // of 150% starts the next page about one and a half cards before the end.
     const io = new IntersectionObserver(
       async (entries) => {
         if (entries[0].isIntersecting && !loadingRef.current) {
@@ -214,7 +218,7 @@ export function Feed() {
           setLoading(false);
         }
       },
-      { rootMargin: "600px" },
+      { root: feedRef.current, rootMargin: "150% 0px" },
     );
     io.observe(sentinel.current);
     return () => io.disconnect();
@@ -250,6 +254,14 @@ export function Feed() {
     setSeed(p);
     setMode("similar");
   };
+
+  // The end-of-feed card is a snap target only when it has something to show:
+  // the real end of a feed, or an error with its Try again button. While more
+  // pages can still load it is not snappable, so the reader stays on the last
+  // real card and new cards appear below. If it were snappable, Chrome would
+  // keep it in view as pages were inserted above it, the observer would fire
+  // again, and the feed would load page after page while showing "Loading".
+  const statusSnaps = papers.length > 0 && (done || error !== null);
 
   // Accent/label per card: in mixed feeds each card keeps its own field colour.
   const cardField = (p: Paper) =>
@@ -367,9 +379,7 @@ export function Feed() {
             <SkeletonCard key={`skeleton-${i}`} />
           ))}
 
-        <div
-          className={`snap-card ${papers.length ? "" : "snap-off"} flex items-center justify-center px-6`}
-        >
+        <div className={`snap-card ${statusSnaps ? "" : "snap-off"} flex items-center justify-center px-6`}>
           <div
             ref={sentinel}
             role="status"

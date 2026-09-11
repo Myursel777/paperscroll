@@ -5,14 +5,18 @@ import { defineConfig, devices } from "@playwright/test";
 // touches arXiv and cannot be rate limited.
 //
 // Locally: `npm run build` once, then `npm run test:e2e`. The config starts
-// `npm run start` for you unless a server is already listening on :3000.
+// `npm run start` for you unless a server is already listening on the port.
+// Set PORT (for example PORT=3001) when a dev server already occupies 3000.
+const port = process.env.PORT ?? "3000";
+const baseURL = `http://localhost:${port}`;
+
 export default defineConfig({
   testDir: "tests/e2e",
   timeout: 30_000,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL,
     trace: "retain-on-failure",
     // Once the service worker controls the page, requests flow through it and
     // Playwright cannot mock them (WebKit in particular would then call the
@@ -21,8 +25,8 @@ export default defineConfig({
     serviceWorkers: "block",
   },
   webServer: {
-    command: "npm run start",
-    url: "http://localhost:3000",
+    command: `npm run start -- -p ${port}`,
+    url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
   },

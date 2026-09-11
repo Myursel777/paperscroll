@@ -5,6 +5,28 @@ so the git history can be read without re-deriving the reasoning.
 
 ## 2026-09-11: Phase 2 started (topic tagging)
 
+- **Two bugs found by trying the app.** (1) The action buttons moved from card
+  to card: a long title plus the six-line abstract could be taller than the
+  card, so the middle overflowed and pushed the footer out of the card and
+  into the next one. The card is now header, a middle region that centres
+  short content and scrolls inside the card when long, and a pinned footer;
+  vertical padding is smaller. (2) "Loading" at the end of the feed never
+  went away: the status card was the snapped card, new pages were inserted
+  above it, Chrome kept it in view, the observer fired again, and the feed
+  loaded page after page while showing the status card. The status card is
+  now a snap target only at a real end (no more pages, or an error to show),
+  so the reader stays on the last card and new cards appear below. Fixing
+  that exposed a third problem: the intersection observer used the viewport
+  as its root, so the sentinel counted as visible only when the status card
+  itself was on screen. It now observes relative to the feed container with
+  a margin of one and a half cards, so the next page loads shortly before
+  the reader reaches the end. Two new end-to-end tests cover the pinned
+  footer and "one more page, no cascade, still on the last card".
+- **Test builds next to a dev server.** The Next output folder is
+  overridable (`NEXT_DIST_DIR`) and the Playwright port too (`PORT`), so a
+  production build for the tests no longer fights a running `npm run dev`
+  over the same `.next` folder.
+
 - **Embedding tagger (v2).** `recommender/main.py` gained `POST /tag`: it
   embeds the topic descriptions once (cached by text) and each abstract once,
   takes cosine similarities, and keeps topics at or above a threshold of 0.3,

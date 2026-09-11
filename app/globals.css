@@ -49,10 +49,11 @@ body {
   scroll-snap-align: start;
   scroll-snap-stop: always;
 }
-/* While a feed is loading, only skeleton cards and the status card exist. If
-   any of them were a snap target, Chrome would re-snap to the end of the feed
-   once the papers are inserted, which triggers infinite scroll for page after
-   page. So nothing snaps until there are papers. */
+/* Skeleton cards never snap, and the end-of-feed status card only snaps when
+   it has something to show (see statusSnaps in Feed.tsx). Chrome re-snaps to
+   the previously snapped element after a layout change, so a snappable
+   placeholder would pull the reader to the end of the feed as pages arrive
+   and make the observer load page after page. */
 .snap-card.snap-off {
   scroll-snap-align: none;
 }

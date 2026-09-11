@@ -33,7 +33,10 @@ the sitemap and share preview use it.
 | `npx tsx scripts/tag-report.ts` | Tagger quality report over the saved sample in `tests/fixtures`; `fetch` pulls a new sample, `eval` scores labelled papers |
 
 The end-to-end tests answer `/api/papers` from a fake inside the browser, so
-they never call arXiv. Before the first run, download the browser engines with
+they never call arXiv. If a dev server is already running on port 3000, build
+and test in a separate folder and port: `NEXT_DIST_DIR=.next-test npm run build`
+then `NEXT_DIST_DIR=.next-test PORT=3001 npm run test:e2e` (in PowerShell set the
+variables with `$env:NAME = "value"` first). Before the first run, download the browser engines with
 `npx playwright install chromium firefox webkit`. GitHub Actions runs all of
 the above on every push (`.github/workflows/ci.yml`).
 

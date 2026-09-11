@@ -42,13 +42,13 @@ export function PaperCard({
   return (
     <article
       aria-labelledby={titleId}
-      className="snap-card relative flex flex-col justify-between px-6 py-20 sm:px-12"
+      className="snap-card relative flex flex-col px-6 py-8 sm:px-12 sm:py-10"
       style={{
         background: `radial-gradient(120% 80% at 50% 0%, ${accent}14 0%, transparent 60%)`,
       }}
     >
       {/* Top: field stamp + index */}
-      <header className="flex items-center justify-between">
+      <header className="flex shrink-0 items-center justify-between">
         <span
           className="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider"
           style={{ background: `${accent}22`, color: accent }}
@@ -60,8 +60,12 @@ export function PaperCard({
         </span>
       </header>
 
-      {/* Middle: the paper itself */}
-      <div className="mx-auto w-full max-w-2xl">
+      {/* Middle: the paper itself. It takes the space between header and
+          footer: short content is centred, long content (a three-line title
+          plus the expanded abstract) scrolls inside the card. The buttons
+          below therefore sit in the same place on every card. */}
+      <div className="mx-auto flex min-h-0 w-full max-w-2xl flex-1 flex-col overflow-y-auto py-6 [scrollbar-width:thin]">
+       <div className="my-auto">
         <h2 id={titleId} className="font-display text-3xl font-semibold leading-tight sm:text-5xl">
           {paper.title}
         </h2>
@@ -107,10 +111,11 @@ export function PaperCard({
             {expanded ? "Show less" : "Read full abstract"}
           </button>
         )}
+       </div>
       </div>
 
-      {/* Bottom: actions */}
-      <footer className="mx-auto flex w-full max-w-2xl items-center gap-3">
+      {/* Bottom: actions, pinned */}
+      <footer className="mx-auto flex w-full max-w-2xl shrink-0 items-center gap-3">
         <a
           href={paper.id}
           target="_blank"

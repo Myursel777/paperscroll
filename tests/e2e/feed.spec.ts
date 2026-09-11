@@ -16,7 +16,10 @@ function fakePapers(fieldId: string, start: number, max: number) {
     const n = start + i;
     return {
       id: `http://arxiv.org/abs/${field.id}.${n}`,
-      title: `${field.label} paper ${n}`,
+      // Paper 1 has a long title so the layout test sees a tall card.
+      title:
+        `${field.label} paper ${n}` +
+        (n === 1 ? " with an unusually long title that wraps onto several lines on any screen size" : ""),
       summary: `Abstract sentence ${n}. `.repeat(25),
       authors: ["A. Author", "B. Author"],
       published: new Date(Date.now() - n * 3_600_000).toISOString(),
@@ -60,6 +63,42 @@ test("loads one page and stays on the first card", async ({ page }) => {
   await page.waitForTimeout(1500);
   expect(await feedScrollTop(page)).toBeLessThan(200);
   expect(calls.some((c) => c.get("start") === "12")).toBe(false);
+});
+
+test("action buttons stay inside every card, whatever the text length", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/");
+  await expect(cards(page)).toHaveCount(12);
+
+  const overflow = await cards(page).evaluateAll((articles) =>
+    articles.slice(0, 4).map((a) => {
+      const card = a.getBoundingClientRect();
+      const footer = a.querySelector("footer")!.getBoundingClientRect();
+      return Math.round(footer.bottom - card.bottom); // positive means it spills out
+    }),
+  );
+  for (const o of overflow) expect(o).toBeLessThanOrEqual(0);
+});
+
+test("reaching the end loads exactly one more page and stays on the last card", async ({ page }) => {
+  const calls = await mockApi(page);
+  await page.goto("/");
+  await expect(cards(page)).toHaveCount(12);
+
+  // Walk to the last card with the keyboard (instant scrolling keeps it deterministic).
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  for (let i = 0; i < 11; i++) await page.keyboard.press("ArrowDown");
+  await expect(cards(page)).toHaveCount(24);
+
+  // One more page, and no runaway loading after it.
+  await page.waitForTimeout(1500);
+  expect(calls.filter((c) => c.get("start") === "12")).toHaveLength(1);
+  expect(calls.some((c) => c.get("start") === "24")).toBe(false);
+
+  // The reader is still on the 12th card, with the new cards below.
+  const cardHeight = await cards(page).first().evaluate((el) => el.getBoundingClientRect().height);
+  const top = await feedScrollTop(page);
+  expect(Math.abs(top - 11 * cardHeight)).toBeLessThan(cardHeight / 2);
 });
 
 test("switching field shows that field's papers", async ({ page }) => {

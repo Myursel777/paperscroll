@@ -3,8 +3,8 @@
 // /api/papers is never cached here; it always goes to the network so the feed
 // stays fresh and we never store arXiv content beyond the server's short cache.
 
-const CACHE = "paperscroll-shell-v1";
-const SHELL = ["/", "/manifest.webmanifest", "/icon-192.png", "/icon-512.png"];
+const CACHE = "paperscroll-shell-v2";
+const SHELL = ["/", "/offline", "/manifest.webmanifest", "/icon-192.png", "/icon-512.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -27,7 +27,8 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET" || url.origin !== self.location.origin) return;
   if (url.pathname.startsWith("/api/")) return; // network only
 
-  // Pages: network first, fall back to the cached shell when offline.
+  // Pages: network first. Offline, show the cached feed shell, or the
+  // dedicated offline page if the shell is not cached yet.
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request)
@@ -36,7 +37,7 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE).then((cache) => cache.put("/", copy));
           return res;
         })
-        .catch(() => caches.match("/")),
+        .catch(async () => (await caches.match("/")) || caches.match("/offline")),
     );
     return;
   }

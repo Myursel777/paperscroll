@@ -5,6 +5,40 @@ so the git history can be read without re-deriving the reasoning.
 
 ## 2026-09-11: Phase 1 started
 
+- **First page loaded twice in WebKit.** Found by the end-to-end suite: on
+  load, WebKit showed 24 cards, page one appended to itself, with no
+  scrolling. The server-rendered HTML has no skeletons, so the end-of-feed
+  card is in view at mount and the infinite-scroll observer fires straight
+  away; it read `loading` from a stale closure and requested page one while
+  the reset effect requested it too. Chromium happened to re-render first.
+  Fix in `Feed.tsx`: the observer is only created once papers exist, reads
+  `loading` through a ref, and appended pages are de-duplicated by id.
+- **Test notes.** Playwright blocks service workers in the test context;
+  otherwise, once the worker controls the page, requests bypass the fake API
+  and WebKit was calling the real arXiv from the tests. Firefox cannot start
+  on this machine (the Playwright build needs the Microsoft Visual C++
+  runtime), so Firefox runs in CI on Ubuntu only.
+
+- **Standard pages and metadata.** About, Privacy, and Terms (plain language,
+  honest about what the site does and does not store), a 404 page, and an
+  Offline page that the service worker shows when the feed shell is not
+  cached. Shared frame in `components/PageShell.tsx`, body styles under
+  `.text-page` in `globals.css`, small footer links at the end of the feed.
+  `lib/site.ts` holds the site name, URL, owner, and repository link in one
+  place. Added `app/error.tsx` (error boundary), `sitemap.ts`, `robots.ts`,
+  `app/icon.png` and `app/apple-icon.png` (Next turns these into the favicon
+  tags), and `opengraph-image.tsx` for the share preview. The share image is
+  rendered in the edge runtime on request because the build-time renderer
+  fails on Windows paths.
+- **End-to-end tests and CI.** `tests/e2e/feed.spec.ts` drives the production
+  build through the main journey: load one page and stay on the first card
+  (the cascade regression test), switch field, save, For You, arrow keys,
+  error card and Try again. The papers API is answered by a fake inside the
+  browser, so the suite is deterministic and never calls arXiv. It runs in
+  Chromium, Firefox, WebKit, and a mobile Chrome profile. ESLint uses the
+  Next.js rules. `.github/workflows/ci.yml` runs lint, typecheck, unit tests,
+  build, and the end-to-end suite on every push.
+
 - Added this work log and `ROADMAP.md`.
 - **arXiv client extracted** from the API route into `lib/arxivClient.ts`.
   Same four rules as before (one call at a time, per-query cache, shared

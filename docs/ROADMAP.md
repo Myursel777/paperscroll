@@ -20,11 +20,11 @@ Everything here is free to run except the app store fees in Phase 6.
 - [x] Tracking docs: this roadmap and a work log
 - [x] Per-visitor throttle on `/api/papers` so one visitor cannot spend the shared arXiv budget
 - [x] Unit tests (Vitest) for the recommender and the arXiv client's cache rules
-- [ ] End-to-end test (Playwright) with a mocked API: open, switch field, save, For You
-- [ ] ESLint and a GitHub Actions workflow that runs lint, typecheck, tests, and build on every push
-- [ ] Error boundary with a "something broke" card
-- [ ] Standard pages: About, Privacy, Terms, 404, Offline
-- [ ] Metadata: Open Graph image, favicon set, sitemap, robots
+- [x] End-to-end test (Playwright) with a mocked API: open, switch field, save, For You
+- [x] ESLint and a GitHub Actions workflow that runs lint, typecheck, tests, and build on every push
+- [x] Error boundary with a "something broke" card
+- [x] Standard pages: About, Privacy, Terms, 404, Offline
+- [x] Metadata: Open Graph image, favicon set, sitemap, robots
 - [ ] Accessibility: focus order, ARIA labels, Escape closes the drawer, visible focus rings, contrast
 - [ ] Dark mode following the system setting (same layout and accents)
 - [ ] Fonts self-hosted through Next, Lighthouse 90+ on mobile

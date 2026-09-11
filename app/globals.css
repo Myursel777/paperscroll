@@ -38,6 +38,42 @@ body {
   scroll-snap-align: none;
 }
 
+/* Body copy on the text pages (About, Privacy, Terms, Offline, 404). */
+.text-page {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: rgb(22 19 15 / 0.85);
+}
+.text-page > * + * {
+  margin-top: 1rem;
+}
+.text-page h2 {
+  margin-top: 2.25rem;
+  font-family: theme("fontFamily.display");
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: theme("colors.ink");
+}
+.text-page ul {
+  padding-left: 1.25rem;
+  list-style: disc;
+}
+.text-page li + li {
+  margin-top: 0.5rem;
+}
+.text-page a {
+  color: theme("colors.ink");
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.text-page code {
+  font-size: 0.9em;
+  background: theme("colors.line");
+  padding: 0.1em 0.35em;
+  border-radius: 0.3em;
+}
+
 /* Clamp the abstract to a readable preview, expandable on the card. */
 .clamp-6 {
   display: -webkit-box;

@@ -1,13 +1,28 @@
 import type { Metadata, Viewport } from "next";
 import { RegisterSW } from "@/components/RegisterSW";
+import { siteDescription, siteName, siteUrl } from "@/lib/site";
 import "./globals.css";
 
+// Icons come from app/icon.png and app/apple-icon.png automatically, and the
+// share preview from app/opengraph-image.tsx. metadataBase makes those URLs
+// absolute in the generated tags.
 export const metadata: Metadata = {
-  title: "PaperScroll — research, one swipe at a time",
-  description: "A scrollable feed of the latest academic papers from arXiv.",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "PaperScroll — research, one swipe at a time",
+    template: "%s · PaperScroll",
+  },
+  description: siteDescription,
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "PaperScroll" },
-  icons: { apple: "/icon-192.png" },
+  appleWebApp: { capable: true, statusBarStyle: "default", title: siteName },
+  openGraph: {
+    type: "website",
+    siteName,
+    title: "PaperScroll — research, one swipe at a time",
+    description: siteDescription,
+    url: siteUrl,
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 export const viewport: Viewport = {

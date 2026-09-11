@@ -18,6 +18,25 @@ npm run dev
 
 Deploy free on Vercel: push to GitHub → "Import Project" → done. No env vars.
 
+## Development
+
+| Command | What it does |
+|---|---|
+| `npm run dev` | Dev server with hot reload on http://localhost:3000 |
+| `npm run build` / `npm start` | Production build and server |
+| `npm run typecheck` | TypeScript, no emit |
+| `npm run lint` | ESLint with the Next.js rules |
+| `npm test` | Unit tests (Vitest) in `tests/unit` |
+| `npm run test:e2e` | End-to-end tests (Playwright) in `tests/e2e`; run `npm run build` first |
+
+The end-to-end tests answer `/api/papers` from a fake inside the browser, so
+they never call arXiv. Before the first run, download the browser engines with
+`npx playwright install chromium firefox webkit`. GitHub Actions runs all of
+the above on every push (`.github/workflows/ci.yml`).
+
+Progress and reasoning live in [docs/ROADMAP.md](docs/ROADMAP.md) and
+[docs/WORKLOG.md](docs/WORKLOG.md).
+
 ## What it does today
 
 - Vertical **swipe/scroll feed** of papers (CSS scroll-snap — works with wheel,
@@ -65,25 +84,39 @@ Two layers, both included:
 
 ```
 app/
-  api/papers/route.ts   Server proxy: queues and caches arXiv queries, returns clean JSON
-  manifest.ts           Web app manifest (served at /manifest.webmanifest)
-  layout.tsx            Fonts + shell
+  api/papers/route.ts   API route: parses the request, applies the per-visitor throttle, returns JSON
+  layout.tsx            HTML shell, fonts, metadata (icons, manifest, share preview)
   page.tsx              Renders <Feed/>
-  globals.css           Scroll-snap feed + design tokens
+  globals.css           Scroll-snap feed, design tokens, text-page styles
+  error.tsx             Error boundary card ("Something broke", Try again)
+  not-found.tsx         404 page
+  about/ privacy/ terms/ offline/   Text pages
+  manifest.ts sitemap.ts robots.ts opengraph-image.tsx   Generated metadata files
 components/
-  Feed.tsx              Core: fetch, infinite scroll, search, state
+  Feed.tsx              Core: fetch, infinite scroll, search, modes, keyboard, state
   PaperCard.tsx         One full-screen paper
+  SkeletonCard.tsx      Placeholder while a page loads
   CategoryBar.tsx       Field-of-study selector
   SavedDrawer.tsx       Saved-papers panel
+  PageShell.tsx         Frame for the text pages
   RegisterSW.tsx        Registers the service worker in production
 lib/
-  arxiv.ts              Types, FIELDS map, XML→Paper parser
+  arxiv.ts              Types, FIELDS map, XML to Paper parser
+  arxivClient.ts        The only code that talks to arXiv: queue, cache, backoff
+  rateLimit.ts          Sliding-window limiter used by the API route
   recommender.ts        Dependency-free TF-IDF + cosine recommender
   neuralRecommender.ts  Client for the optional neural service, with fallback
   useSaved.ts           localStorage save hook
+  site.ts               Site name, URL, owner, repository link
 public/
   sw.js                 Service worker: caches the app shell, never the API
   icon-192.png, icon-512.png
+tests/
+  unit/                 Vitest: arXiv client rules, rate limiter, recommender
+  e2e/                  Playwright: the main user journey with a mocked API
+docs/
+  ROADMAP.md            Phase-by-phase checklist
+  WORKLOG.md            What changed, why, and how it was checked
 ```
 
 The key idea: **a "section" is just a different arXiv query.** To add a field,

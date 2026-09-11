@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   FIELDS,
@@ -62,6 +63,10 @@ export function Feed() {
   const { saved, isSaved, toggle, remove } = useSaved();
   const sentinel = useRef<HTMLDivElement | null>(null);
   const feedRef = useRef<HTMLDivElement | null>(null);
+  // Mirrors `loading` for the IntersectionObserver callback, which otherwise
+  // reads a stale value from the render it was created in.
+  const loadingRef = useRef(false);
+  loadingRef.current = loading;
 
   // Which fields to draw the "For You" candidate pool from: the ones you've
   // saved from most, or a sensible default before you've saved anything.
@@ -83,7 +88,9 @@ export function Feed() {
       const from = reset ? 0 : start;
       const { papers: incoming, error: err } = await fetchField(fieldId, query, from, PER_PAGE);
       if (err) setError(err);
-      setPapers((prev) => (reset ? incoming : [...prev, ...incoming]));
+      // arXiv pages can overlap when new papers land between requests, so
+      // appended pages are de-duplicated by id.
+      setPapers((prev) => (reset ? incoming : dedupe([...prev, ...incoming])));
       setStart(from + PER_PAGE);
       if (incoming.length < PER_PAGE) setDone(true);
     },
@@ -166,12 +173,15 @@ export function Feed() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // Infinite scroll (field mode only).
+  // Infinite scroll (field mode only). It only ever appends: the first page is
+  // the reset effect's job, so nothing is observed until papers exist. Before
+  // that the end-of-feed card sits in view and the observer would fire at
+  // mount, which in WebKit raced the first load and doubled page one.
   useEffect(() => {
-    if (mode !== "field" || !sentinel.current || done) return;
+    if (mode !== "field" || !sentinel.current || done || papers.length === 0) return;
     const io = new IntersectionObserver(
       async (entries) => {
-        if (entries[0].isIntersecting && !loading) {
+        if (entries[0].isIntersecting && !loadingRef.current) {
           setLoading(true);
           await loadField(false);
           setLoading(false);
@@ -181,7 +191,7 @@ export function Feed() {
     );
     io.observe(sentinel.current);
     return () => io.disconnect();
-  }, [mode, loadField, loading, done]);
+  }, [mode, loadField, loading, done, papers.length]);
 
   const goField = (id: string) => {
     setSeed(null);
@@ -317,6 +327,12 @@ export function Feed() {
             {!loading && !error && papers.length > 0 && mode === "similar" && (
               <span>End of similar papers.</span>
             )}
+
+            <nav aria-label="About this site" className="mt-10 flex justify-center gap-5 text-xs">
+              <Link href="/about" className="hover:text-ink">About</Link>
+              <Link href="/privacy" className="hover:text-ink">Privacy</Link>
+              <Link href="/terms" className="hover:text-ink">Terms</Link>
+            </nav>
           </div>
         </div>
       </div>

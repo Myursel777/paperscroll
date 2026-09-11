@@ -1,9 +1,17 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { RegisterSW } from "@/components/RegisterSW";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "PaperScroll — research, one swipe at a time",
   description: "A scrollable feed of the latest academic papers from arXiv.",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "PaperScroll" },
+  icons: { apple: "/icon-192.png" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#FBF8F1",
 };
 
 export default function RootLayout({
@@ -26,7 +34,10 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <RegisterSW />
+      </body>
     </html>
   );
 }

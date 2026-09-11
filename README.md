@@ -31,6 +31,9 @@ Deploy free on Vercel: push to GitHub → "Import Project" → done. No env vars
 - **Save for later** (stored in the browser via `localStorage`, no login).
 - **Read** (arXiv abstract page) and **PDF** links on every card.
 - **Infinite scroll** — new pages load automatically as you near the end.
+- **Installable**: a web app manifest and a small service worker let you add
+  PaperScroll to a phone's home screen. The app shell is cached so it opens
+  instantly; paper data always comes from the network.
 - **Keyboard**: the up and down arrow keys move one paper at a time. Smooth
   scrolling and the loading animation are switched off when the system asks
   for reduced motion.
@@ -63,6 +66,7 @@ Two layers, both included:
 ```
 app/
   api/papers/route.ts   Server proxy: queues and caches arXiv queries, returns clean JSON
+  manifest.ts           Web app manifest (served at /manifest.webmanifest)
   layout.tsx            Fonts + shell
   page.tsx              Renders <Feed/>
   globals.css           Scroll-snap feed + design tokens
@@ -71,11 +75,15 @@ components/
   PaperCard.tsx         One full-screen paper
   CategoryBar.tsx       Field-of-study selector
   SavedDrawer.tsx       Saved-papers panel
+  RegisterSW.tsx        Registers the service worker in production
 lib/
   arxiv.ts              Types, FIELDS map, XML→Paper parser
   recommender.ts        Dependency-free TF-IDF + cosine recommender
   neuralRecommender.ts  Client for the optional neural service, with fallback
   useSaved.ts           localStorage save hook
+public/
+  sw.js                 Service worker: caches the app shell, never the API
+  icon-192.png, icon-512.png
 ```
 
 The key idea: **a "section" is just a different arXiv query.** To add a field,
@@ -90,9 +98,8 @@ Live arXiv feed, fields, search, save, infinite scroll. Deployable.
 ### Phase 2 — Polish & PWA
 - ✅ Loading skeletons, a "Try again" action on errors, arrow keys for
   next/prev, reduced-motion aware.
-- Make it an installable **PWA** (manifest + service worker) so phones can
-  "Add to Home Screen" and it feels like an app. (ArxivTok does exactly this —
-  worth copying its `manifest.json` / `sw.js` approach.)
+- ✅ Installable **PWA** (manifest + service worker) so phones can
+  "Add to Home Screen" and it feels like an app.
 - More sources behind the same parser: bioRxiv, medRxiv, PubMed.
 
 ### Phase 3 — Accounts & cloud sync

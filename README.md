@@ -16,7 +16,9 @@ npm run dev
 # open http://localhost:3000
 ```
 
-Deploy free on Vercel: push to GitHub → "Import Project" → done. No env vars.
+Deploy free on Vercel: push to GitHub, import the repository, done. No env vars
+are required; set `NEXT_PUBLIC_SITE_URL` to your domain once you have one so
+the sitemap and share preview use it.
 
 ## Development
 
@@ -125,43 +127,16 @@ add an entry to `FIELDS` in `lib/arxiv.ts` with its arXiv categories
 
 ## Roadmap
 
-### Phase 1 — MVP feed ✅ (this repo)
-Live arXiv feed, fields, search, save, infinite scroll. Deployable.
+The detailed, ticked checklist lives in [docs/ROADMAP.md](docs/ROADMAP.md).
+In short:
 
-### Phase 2 — Polish & PWA
-- ✅ Loading skeletons, a "Try again" action on errors, arrow keys for
-  next/prev, reduced-motion aware.
-- ✅ Installable **PWA** (manifest + service worker) so phones can
-  "Add to Home Screen" and it feels like an app.
-- More sources behind the same parser: bioRxiv, medRxiv, PubMed.
-
-### Phase 3 — Accounts & cloud sync
-Move saves off `localStorage` so they sync across devices.
-- Add **Supabase** (Postgres + auth) — free tier, ~an afternoon of work.
-- `saved_papers(user_id, paper_id, paper_json, saved_at)`.
-- Swap `useSaved` to read/write Supabase when logged in, fall back to
-  localStorage when not. Add a "download for offline" action that caches PDFs.
-
-### Phase 4 — Trending
-Right now the feed is newest-first. Add a real trending signal:
-- Track lightweight events (views, saves, "read paper" clicks) per paper.
-- Rank with a time-decayed score, e.g. `score = saves / (hours_since + 2)^1.5`
-  (a Hacker News–style gravity formula).
-- A "Trending" tab alongside the field tabs.
-
-### Phase 5 — Personalised recommender ✅ in progress
-The portfolio centrepiece — and the part your AI degree makes you qualified for.
-- ✅ In-app TF-IDF recommender (`lib/recommender.ts`) powering "For You" + "Similar".
-- ✅ Neural embedding service (`recommender/`) — sentence-transformers, ready to deploy.
-- ✅ Frontend calls the neural service when `NEXT_PUBLIC_RECOMMENDER_URL` is
-  set and falls back to TF-IDF when it is not reachable.
-- ▢ Next: cache paper embeddings in **pgvector** (Supabase) for fast similarity
-  search, and write up the approach: that write-up *is* the portfolio value.
-
-### Phase 6 — Mobile app
-Reuse the data layer in **React Native (Expo)**. `lib/arxiv.ts` and the fetch
-logic port almost unchanged; you rebuild the UI with native components and a
-`FlatList` with paging enabled for the swipe feed. One backend, two clients.
+1. **MVP feed**: live arXiv feed, fields, search, save, infinite scroll, TF-IDF and neural recommenders, PWA. Done.
+2. **Production-ready website**: tests, CI, standard pages, accessibility, dark mode, self-hosted fonts, deploy. Done except the deploy.
+3. **Topic tagging**: a fixed taxonomy, rule-based then embedding-based tags, tag filters.
+4. **Accounts** on Supabase: sign up, log in, account pages, synced library.
+5. **For You v2**: interest profile from reading behaviour, nightly tagging and embedding job, evaluation harness.
+6. **Polish**: digest emails, sharing, more sources, monitoring, write-up.
+7. **Mobile app** with Expo, sharing the data layer with the website.
 
 ## Notes & etiquette
 - arXiv asks API clients to identify themselves and to make at most one request

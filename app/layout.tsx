@@ -22,7 +22,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "sw
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "PaperScroll — research, one swipe at a time",
+    default: "PaperScroll: research, one swipe at a time",
     template: "%s · PaperScroll",
   },
   description: siteDescription,
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName,
-    title: "PaperScroll — research, one swipe at a time",
+    title: "PaperScroll: research, one swipe at a time",
     description: siteDescription,
     url: siteUrl,
   },

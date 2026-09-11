@@ -5,6 +5,13 @@ so the git history can be read without re-deriving the reasoning.
 
 ## 2026-09-11: Phase 1 started
 
+- **Deploy preparation.** `lib/site.ts` falls back to Vercel's own URL
+  variable when `NEXT_PUBLIC_SITE_URL` is not set, so a fresh import on
+  Vercel needs no configuration. The README roadmap now summarises the
+  phases and links to `docs/ROADMAP.md` as the single detailed list. The
+  page title uses a colon instead of a dash. Lighthouse could not be run
+  from this machine; Core Web Vitals were measured instead (see above).
+
 - **Fonts and performance.** Fraunces and Inter are loaded through
   `next/font/google`, which downloads them once at build time and serves
   them from this site with size-matched fallbacks. No request goes to Google

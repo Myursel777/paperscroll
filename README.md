@@ -51,8 +51,10 @@ Progress and reasoning live in [docs/ROADMAP.md](docs/ROADMAP.md) and
 - **Similar** — "more like this" on any card, ranked by content similarity.
 - **Topics**: every paper carries up to three topic tags (for example
   "Diffusion models" or "Medical imaging") from a fixed taxonomy of 56 topics
-  in `lib/topics.ts`. Tags are computed on the server by a rule-based tagger.
-  Tap a tag, or a topic chip under the field chips, to browse that topic.
+  in `lib/topics.ts`. Tags are computed on the server: by the embedding
+  tagger in the Python service when it is configured, by the rule-based
+  tagger in `lib/tagger.ts` otherwise. Tap a tag, or a topic chip under the
+  field chips, to browse that topic.
 - **Search** within a field.
 - **Save for later** (stored in the browser via `localStorage`, no login).
 - **Read** (arXiv abstract page) and **PDF** links on every card.
@@ -87,6 +89,12 @@ Two layers, both included:
    seconds, the app silently uses the TF-IDF engine instead, so nothing breaks
    when the service is down.
 
+   The same service also tags papers by meaning (`POST /tag`): the API route
+   sends each new paper's title and abstract together with the topic
+   descriptions, and keeps the topics whose embeddings are closest. Set
+   `RECOMMENDER_URL` for the server side (the public variable works too);
+   without it, or when the service is down, `lib/tagger.ts` tags by rules.
+
 ## How it's structured
 
 ```
@@ -111,6 +119,7 @@ lib/
   arxiv.ts              Types, FIELDS map, XML to Paper parser
   topics.ts             Topic taxonomy: 56 topics with patterns, categories, and searches
   tagger.ts             Rule-based tagger: up to three topics per paper, explainable
+  neuralTagger.ts       Client for the embedding tagger in the Python service, with fallback
   arxivClient.ts        The only code that talks to arXiv: queue, cache, backoff
   rateLimit.ts          Sliding-window limiter used by the API route
   recommender.ts        Dependency-free TF-IDF + cosine recommender

@@ -38,7 +38,7 @@ on the server, never in the browser while scrolling.
 
 - [x] Taxonomy of about fifty topics in `lib/topics.ts`: id, label, parent field, description, hinting arXiv categories, keyword patterns, and the arXiv search each topic maps to
 - [x] Tagger v1 (rules): keyword patterns weighted by title and abstract, arXiv categories as a tie-breaker, max three tags. Quality check against a sample is a separate item below
-- [ ] Tagger v2 (embeddings): cosine between abstract and topic descriptions, threshold, max three tags
+- [x] Tagger v2 (embeddings): `POST /tag` on the Python service, cosine between abstract and topic descriptions, threshold 0.3, max three tags; `lib/neuralTagger.ts` uses it with a per-paper cache and falls back to the rules
 - [x] Tags returned with every paper by the API route (a `paper_tags` table comes with Phase 3)
 - [x] Tag chips on cards, tap to search that topic, topics row under the field chips
 - [x] Report script over a saved 150-paper sample (25 per field), two tuning passes by reading every tagged paper: category gating, per-topic thresholds, tighter patterns

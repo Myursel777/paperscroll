@@ -5,6 +5,21 @@ so the git history can be read without re-deriving the reasoning.
 
 ## 2026-09-11: Phase 2 started (topic tagging)
 
+- **Embedding tagger (v2).** `recommender/main.py` gained `POST /tag`: it
+  embeds the topic descriptions once (cached by text) and each abstract once,
+  takes cosine similarities, and keeps topics at or above a threshold of 0.3,
+  best first, at most three. The taxonomy is sent with the request so the
+  service has no copy to keep in sync. On the Next side,
+  `lib/neuralTagger.ts` is a small client with a four-second timeout and a
+  per-paper cache; the API route calls `tagPapersBest`, which uses the
+  service'"'"'s tags when it answers and the rules otherwise, and keeps the rule
+  tags for any paper the service returned nothing for. Checked against a mock
+  implementing the contract: tags switched to the mock'"'"'s, the second request
+  only sent the three unseen papers, and with the mock stopped the route
+  answered in about 300 ms with rule-based tags and a warning in the log. The
+  real service was not run (it needs torch); the threshold will need tuning
+  against real embeddings.
+
 - **Tagger evaluation and tuning.** `scripts/tag-report.ts` pulls one polite
   request per field (25 papers each) into `tests/fixtures/tag-sample.json`
   and prints every paper with its tags and the patterns that fired, plus the

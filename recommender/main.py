@@ -102,3 +102,74 @@ def recommend(req: RecommendRequest) -> list[Ranked]:
         for c, s in zip(req.candidates, sims)
     ]
     return sorted(out, key=lambda r: r.score, reverse=True)
+
+
+# ---------------------------------------------------------------------------
+# Topic tagging (tagger v2)
+#
+# The rule-based tagger in lib/tagger.ts matches keywords. This endpoint does
+# the same job by meaning: it embeds each topic's description once and each
+# abstract once, takes the cosine similarity between them, and keeps the
+# topics above a threshold, at most `max_tags` per paper. The taxonomy itself
+# lives in lib/topics.ts and is sent with the request, so the service has no
+# copy of it to keep in sync.
+
+
+class TagTopic(BaseModel):
+    id: str
+    text: str  # label plus description
+
+
+class TagCandidate(BaseModel):
+    id: str
+    text: str  # title plus abstract
+
+
+class TagRequest(BaseModel):
+    topics: list[TagTopic]
+    candidates: list[TagCandidate]
+    threshold: float = 0.3  # cosine similarity a topic needs to count
+    max_tags: int = 3
+
+
+class TagScore(BaseModel):
+    id: str
+    similarity: float
+
+
+class TaggedPaper(BaseModel):
+    id: str
+    tags: list[TagScore]  # best first
+
+
+_topic_cache: dict[str, np.ndarray] = {}
+
+
+def embed_topics(topics: list[TagTopic]) -> np.ndarray:
+    """Topic descriptions change rarely, so their embeddings are cached by text."""
+    missing = [t.text for t in topics if t.text not in _topic_cache]
+    if missing:
+        for text, vec in zip(missing, embed(missing)):
+            _topic_cache[text] = vec
+    return np.stack([_topic_cache[t.text] for t in topics])
+
+
+@app.post("/tag", response_model=list[TaggedPaper])
+def tag(req: TagRequest) -> list[TaggedPaper]:
+    if not req.candidates or not req.topics:
+        return [TaggedPaper(id=c.id, tags=[]) for c in req.candidates]
+
+    topic_vecs = embed_topics(req.topics)  # (topics, dim)
+    cand_vecs = embed([c.text for c in req.candidates])  # (papers, dim)
+    sims = cand_vecs @ topic_vecs.T  # cosine, everything is normalized
+
+    out: list[TaggedPaper] = []
+    for cand, row in zip(req.candidates, sims):
+        order = np.argsort(-row)
+        tags = [
+            TagScore(id=req.topics[i].id, similarity=float(row[i]))
+            for i in order[: req.max_tags]
+            if row[i] >= req.threshold
+        ]
+        out.append(TaggedPaper(id=cand.id, tags=tags))
+    return out

@@ -27,14 +27,33 @@ First start downloads the `all-MiniLM-L6-v2` model (~90 MB) and caches it.
 ```
 Returns the candidates sorted best-first with `score` and `similarity`.
 
-## Wiring it into the frontend
+`POST /tag`
+```json
+{
+  "topics": [{ "id": "generative-models", "text": "Generative models. Diffusion models, flows, ..." }],
+  "candidates": [{ "id": "arxiv-id", "text": "title + abstract" }],
+  "threshold": 0.3,
+  "max_tags": 3
+}
+```
+Returns, per candidate, the topics whose description embedding is closest to
+the paper (cosine similarity at or above `threshold`, best first, at most
+`max_tags`). Topic embeddings are cached by text, so the taxonomy can be sent
+with every request without recomputing it.
 
-Point the Next app at this service with an env var and restart `npm run dev`:
+## Wiring it into the app
+
+Point the Next app at this service with env vars and restart `npm run dev`:
 
 ```
 # .env.local
-NEXT_PUBLIC_RECOMMENDER_URL=http://localhost:8000
+NEXT_PUBLIC_RECOMMENDER_URL=http://localhost:8000   # browser side: For You, Similar
+RECOMMENDER_URL=http://localhost:8000               # server side: topic tagging
 ```
+
+`lib/neuralTagger.ts` (server) asks `/tag` about each paper once and falls
+back to the rule-based tagger in `lib/tagger.ts` when the service is not
+reachable within four seconds.
 
 `lib/neuralRecommender.ts` then sends the saved papers (or the seed paper for
 "Similar") and the candidate pool to `POST /recommend` and shows the returned

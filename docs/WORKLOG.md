@@ -6,6 +6,21 @@ so the git history can be read without re-deriving the reasoning.
 ## 2026-09-11: Phase 1 started
 
 - Added this work log and `ROADMAP.md`.
+- **arXiv client extracted** from the API route into `lib/arxivClient.ts`.
+  Same four rules as before (one call at a time, per-query cache, shared
+  in-flight calls, backoff after 429), but the client takes its fetch, clock,
+  and sleep as parameters, so the rules are now covered by unit tests with a
+  fake arXiv instead of the real one. The route is a thin wrapper again.
+- **Per-visitor throttle** (`lib/rateLimit.ts`): a sliding window of 30
+  requests per minute per client address. Above that the route answers 429
+  with a Retry-After header and the feed shows its Try again card. A normal
+  reader never gets near the limit; the point is that one runaway tab cannot
+  spend the arXiv budget that everyone shares.
+- **Unit tests** with Vitest in `tests/unit`: 18 tests over the arXiv client
+  (cache hit, expiry, shared in-flight call, spacing, stale-on-429, backoff,
+  Retry-After), the rate limiter, and the TF-IDF recommender (cold start,
+  saved papers excluded, vocabulary match ranks higher, similar excludes the
+  seed). Run with `npm test`.
 
 ## 2026-09-11: MVP hardening (Phase 0 finished)
 

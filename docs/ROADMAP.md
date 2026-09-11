@@ -17,9 +17,9 @@ Everything here is free to run except the app store fees in Phase 6.
 
 ## Phase 1: production-ready website
 
-- [ ] Tracking docs: this roadmap and a work log
-- [ ] Per-visitor throttle on `/api/papers` so one visitor cannot spend the shared arXiv budget
-- [ ] Unit tests (Vitest) for the recommender and the arXiv client's cache rules
+- [x] Tracking docs: this roadmap and a work log
+- [x] Per-visitor throttle on `/api/papers` so one visitor cannot spend the shared arXiv budget
+- [x] Unit tests (Vitest) for the recommender and the arXiv client's cache rules
 - [ ] End-to-end test (Playwright) with a mocked API: open, switch field, save, For You
 - [ ] ESLint and a GitHub Actions workflow that runs lint, typecheck, tests, and build on every push
 - [ ] Error boundary with a "something broke" card

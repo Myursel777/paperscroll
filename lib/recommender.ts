@@ -30,7 +30,7 @@ function tokenize(text: string): string[] {
     .filter((t) => t.length > 2 && !STOP.has(t));
 }
 
-const paperText = (p: Paper) => `${p.title} ${p.title} ${p.summary}`; // title weighted x2
+export const paperText = (p: Paper) => `${p.title} ${p.title} ${p.summary}`; // title weighted x2
 
 // Inverse document frequency over a corpus, so common words count for less.
 function buildIdf(docsTokens: string[][]): Map<string, number> {
@@ -78,7 +78,7 @@ function centroid(vecs: Vec[]): Vec {
   return sum;
 }
 
-function recencyScore(iso: string): number {
+export function recencyScore(iso: string): number {
   const days = (Date.now() - new Date(iso).getTime()) / 86_400_000;
   if (!isFinite(days)) return 0;
   return Math.exp(-days / 30); // ~1 today, decays over a month

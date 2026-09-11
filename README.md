@@ -45,8 +45,18 @@ Two layers, both included:
    browser. Powers "For You" and "Similar".
 2. **Neural upgrade (`/recommender`):** a FastAPI service using a
    sentence-transformer (`all-MiniLM-L6-v2`) for meaning-based similarity. Same
-   interface, better ranking. Wire it in via an env var and keep the TF-IDF
-   version as the fallback. See `recommender/README.md`.
+   interface, better ranking. To use it, run the service (see
+   `recommender/README.md`) and point the app at it:
+
+   ```
+   # .env.local
+   NEXT_PUBLIC_RECOMMENDER_URL=http://localhost:8000
+   ```
+
+   `lib/neuralRecommender.ts` calls the service for "For You" and "Similar".
+   If the variable is unset, or the service does not answer within a few
+   seconds, the app silently uses the TF-IDF engine instead, so nothing breaks
+   when the service is down.
 
 ## How it's structured
 
@@ -63,6 +73,8 @@ components/
   SavedDrawer.tsx       Saved-papers panel
 lib/
   arxiv.ts              Types, FIELDS map, XML→Paper parser
+  recommender.ts        Dependency-free TF-IDF + cosine recommender
+  neuralRecommender.ts  Client for the optional neural service, with fallback
   useSaved.ts           localStorage save hook
 ```
 
@@ -101,9 +113,10 @@ Right now the feed is newest-first. Add a real trending signal:
 The portfolio centrepiece — and the part your AI degree makes you qualified for.
 - ✅ In-app TF-IDF recommender (`lib/recommender.ts`) powering "For You" + "Similar".
 - ✅ Neural embedding service (`recommender/`) — sentence-transformers, ready to deploy.
-- ▢ Next: wire the frontend to call the neural service (env var + fallback),
-  cache paper embeddings in **pgvector** (Supabase) for fast similarity search,
-  and write up the approach — that write-up *is* the portfolio value.
+- ✅ Frontend calls the neural service when `NEXT_PUBLIC_RECOMMENDER_URL` is
+  set and falls back to TF-IDF when it is not reachable.
+- ▢ Next: cache paper embeddings in **pgvector** (Supabase) for fast similarity
+  search, and write up the approach — that write-up *is* the portfolio value.
 
 ### Phase 6 — Mobile app
 Reuse the data layer in **React Native (Expo)**. `lib/arxiv.ts` and the fetch

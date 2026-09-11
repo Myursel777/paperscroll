@@ -9,6 +9,7 @@ import {
 } from "@/lib/arxiv";
 import { useSaved } from "@/lib/useSaved";
 import { recommend, similarTo } from "@/lib/recommender";
+import { rankNeural } from "@/lib/neuralRecommender";
 import { PaperCard } from "@/components/PaperCard";
 import { CategoryBar } from "@/components/CategoryBar";
 import { SavedDrawer } from "@/components/SavedDrawer";
@@ -97,7 +98,9 @@ export function Feed() {
     const err = results.find((r) => r.error)?.error;
     if (err) setError(err);
     else if (!pool.length) setError("Could not load recommendations. Try again.");
-    setPapers(recommend(saved, pool).map((s) => s.paper));
+    // Neural service when configured and reachable, local TF-IDF otherwise.
+    const ranked = (await rankNeural(saved, pool)) ?? recommend(saved, pool);
+    setPapers(ranked.map((s) => s.paper));
     setDone(true);
   }, [poolFields, saved]);
 
@@ -105,7 +108,9 @@ export function Feed() {
     const f = fieldForCategory(s.primaryCategory).id;
     const { papers: pool, error: err } = await fetchField(f, "", 0, 30);
     if (err) setError(err);
-    setPapers(similarTo(s, dedupe(pool)).map((x) => x.paper));
+    const candidates = dedupe(pool);
+    const ranked = (await rankNeural([s], candidates)) ?? similarTo(s, candidates);
+    setPapers(ranked.map((x) => x.paper));
     setDone(true);
   }, []);
 

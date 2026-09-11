@@ -29,16 +29,18 @@ Returns the candidates sorted best-first with `score` and `similarity`.
 
 ## Wiring it into the frontend
 
-In the Next app, point an env var at this service and call it from `Feed.tsx`
-instead of the local `recommend()` when it's available:
+Point the Next app at this service with an env var and restart `npm run dev`:
 
 ```
 # .env.local
 NEXT_PUBLIC_RECOMMENDER_URL=http://localhost:8000
 ```
 
-Keep the TF-IDF `recommend()` as the fallback when the service is unreachable —
-that way the app always works, and the neural ranking is a progressive upgrade.
+`lib/neuralRecommender.ts` then sends the saved papers (or the seed paper for
+"Similar") and the candidate pool to `POST /recommend` and shows the returned
+order. If the service is not reachable or does not answer within four seconds,
+the app falls back to the local TF-IDF `recommend()`, so it always works and
+the neural ranking is a progressive upgrade.
 
 ## Why this is the portfolio piece
 - Real embedding model serving meaning-based similarity.

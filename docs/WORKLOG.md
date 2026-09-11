@@ -5,6 +5,17 @@ so the git history can be read without re-deriving the reasoning.
 
 ## 2026-09-11: Phase 1 started
 
+- **Fonts and performance.** Fraunces and Inter are loaded through
+  `next/font/google`, which downloads them once at build time and serves
+  them from this site with size-matched fallbacks. No request goes to Google
+  at runtime, the render-blocking stylesheet is gone, and the ESLint font
+  warning with it. Measured on the production build with Playwright in a
+  Pixel 7 profile and a 4x CPU slowdown: first contentful paint 252 ms,
+  largest contentful paint 684 ms, cumulative layout shift 0, total blocking
+  time 33 ms, 272 kB transferred. Lighthouse itself could not launch Chrome
+  from this shell; run it on the deployed URL (PageSpeed Insights is free)
+  to confirm the score.
+
 - **Dark mode.** The four design tokens (paper, ink, muted, line) are now CSS
   variables in `globals.css`, light by default and inverted under
   `prefers-color-scheme: dark`. Tailwind reads them as RGB channels

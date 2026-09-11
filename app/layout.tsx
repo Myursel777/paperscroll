@@ -1,7 +1,20 @@
 import type { Metadata, Viewport } from "next";
+import { Fraunces, Inter } from "next/font/google";
 import { RegisterSW } from "@/components/RegisterSW";
 import { siteDescription, siteName, siteUrl } from "@/lib/site";
 import "./globals.css";
+
+// Fonts are downloaded once at build time and served from this site, so
+// there is no request to Google at runtime, no render-blocking stylesheet,
+// and no layout shift. Tailwind reads them through the two CSS variables
+// (see tailwind.config.ts).
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  axes: ["opsz"],
+  variable: "--font-fraunces",
+  display: "swap",
+});
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 
 // Icons come from app/icon.png and app/apple-icon.png automatically, and the
 // share preview from app/opengraph-image.tsx. metadataBase makes those URLs
@@ -38,20 +51,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <head>
-        {/* Fonts via link so the project runs with zero font setup. */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap"
-          rel="stylesheet"
-        />
-      </head>
+    <html lang="en" className={`${fraunces.variable} ${inter.variable}`}>
       <body>
         {children}
         <RegisterSW />

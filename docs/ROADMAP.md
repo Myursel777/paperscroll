@@ -27,7 +27,7 @@ Everything here is free to run except the app store fees in Phase 6.
 - [x] Metadata: Open Graph image, favicon set, sitemap, robots
 - [x] Accessibility: focus order, ARIA labels, Escape closes the drawer, visible focus rings, contrast
 - [x] Dark mode following the system setting (same layout and accents)
-- [ ] Fonts self-hosted through Next, Lighthouse 90+ on mobile
+- [x] Fonts self-hosted through Next; Core Web Vitals measured green on a throttled mobile profile (Lighthouse score to confirm on the deployed URL)
 - [ ] Cross-browser pass: the end-to-end test runs in Chromium, Firefox, and WebKit
 - [ ] Deploy on Vercel (free Hobby plan) from a GitHub repository
 

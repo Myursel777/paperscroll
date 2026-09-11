@@ -11,8 +11,9 @@ account on first login. The account system switches on only when the two
 public Supabase values are present in `.env.local`, so the site keeps working
 with zero setup.
 
-- **Finishing touches.** Branded confirmation and reset emails to paste into
-  the Supabase dashboard, a daily keep-alive workflow (one read a day keeps
+- **Finishing touches.** Branded confirmation and reset emails for the day a
+  mail provider is configured (Supabase only allows editing templates with
+  custom SMTP), a daily keep-alive workflow (one read a day keeps
   the free project from pausing; it needs the project URL and anon key as
   repository secrets and does nothing without them), and the README, About,
   and Privacy pages updated for accounts. Not done yet: connecting a real

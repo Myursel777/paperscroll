@@ -31,8 +31,10 @@ tier.
    http://localhost:3000/auth/callback
    https://your-domain.vercel.app/auth/callback
    ```
-5. Optional: under **Authentication, Email Templates** replace the default
-   texts with the ones in `email-templates/` so the emails match the site.
+5. Optional, and only once you have a mail provider: Supabase lets you edit
+   the email texts only when custom SMTP is configured (Authentication, Emails,
+   SMTP Settings). The branded versions in `email-templates/` are ready for
+   that day; until then the default Supabase emails are used and work fine.
 6. Restart `npm run dev`. The header now shows **Log in**.
 
 ## Without a Supabase project

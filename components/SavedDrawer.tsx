@@ -1,7 +1,14 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import type { SavedPaper } from "@/lib/useSaved";
 
+// Slide-over panel with the saved papers. Accessibility notes:
+// - It is a dialog: role, aria-modal, and a title the dialog is labelled by.
+// - Escape closes it. Focus moves into the panel when it opens and returns
+//   to whatever opened it when it closes.
+// - While closed it is `invisible`, so it is out of the tab order and hidden
+//   from screen readers even though it stays in the DOM for the transition.
 export function SavedDrawer({
   open,
   saved,
@@ -13,24 +20,50 @@ export function SavedDrawer({
   onClose: () => void;
   onRemove: (id: string) => void;
 }) {
+  const panel = useRef<HTMLElement | null>(null);
+  const opener = useRef<HTMLElement | null>(null);
+  const close = useRef(onClose);
+  close.current = onClose;
+
+  useEffect(() => {
+    if (!open) return;
+    opener.current = document.activeElement as HTMLElement | null;
+    panel.current?.focus();
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close.current();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      opener.current?.focus();
+    };
+  }, [open]);
+
   return (
     <>
       <div
         onClick={onClose}
+        aria-hidden="true"
         className={`fixed inset-0 z-40 bg-ink/30 transition-opacity ${
           open ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
       />
       <aside
-        className={`fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col bg-paper shadow-2xl transition-transform ${
-          open ? "translate-x-0" : "translate-x-full"
+        ref={panel}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="saved-drawer-title"
+        className={`fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col bg-paper shadow-2xl outline-none transition-[transform,visibility] ${
+          open ? "visible translate-x-0" : "invisible translate-x-full"
         }`}
       >
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
-          <h2 className="font-display text-xl font-semibold">
+          <h2 id="saved-drawer-title" className="font-display text-xl font-semibold">
             Saved · {saved.length}
           </h2>
-          <button onClick={onClose} className="text-sm text-muted">
+          <button onClick={onClose} aria-label="Close saved papers" className="text-sm text-muted">
             Close
           </button>
         </div>
@@ -58,7 +91,7 @@ export function SavedDrawer({
                         href={p.pdfLink}
                         target="_blank"
                         rel="noreferrer"
-                        download
+                        aria-label={`Open PDF of ${p.title}`}
                         className="text-muted underline"
                       >
                         PDF
@@ -66,6 +99,7 @@ export function SavedDrawer({
                     )}
                     <button
                       onClick={() => onRemove(p.id)}
+                      aria-label={`Remove ${p.title} from saved`}
                       className="text-muted underline"
                     >
                       Remove

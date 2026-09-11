@@ -25,7 +25,7 @@ Everything here is free to run except the app store fees in Phase 6.
 - [x] Error boundary with a "something broke" card
 - [x] Standard pages: About, Privacy, Terms, 404, Offline
 - [x] Metadata: Open Graph image, favicon set, sitemap, robots
-- [ ] Accessibility: focus order, ARIA labels, Escape closes the drawer, visible focus rings, contrast
+- [x] Accessibility: focus order, ARIA labels, Escape closes the drawer, visible focus rings, contrast
 - [ ] Dark mode following the system setting (same layout and accents)
 - [ ] Fonts self-hosted through Next, Lighthouse 90+ on mobile
 - [ ] Cross-browser pass: the end-to-end test runs in Chromium, Firefox, and WebKit

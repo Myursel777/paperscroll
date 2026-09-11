@@ -38,6 +38,13 @@ body {
   scroll-snap-align: none;
 }
 
+/* A visible focus ring for keyboard users, on every focusable element. Mouse
+   clicks do not show it because of :focus-visible. */
+:focus-visible {
+  outline: 2px solid theme("colors.ink");
+  outline-offset: 3px;
+}
+
 /* Body copy on the text pages (About, Privacy, Terms, Offline, 404). */
 .text-page {
   font-size: 1rem;

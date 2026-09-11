@@ -5,6 +5,20 @@ so the git history can be read without re-deriving the reasoning.
 
 ## 2026-09-11: Phase 1 started
 
+- **Accessibility pass.** One `h1` per page (the PaperScroll wordmark; card
+  titles are `h2` and each card is labelled by its title), the feed sits in a
+  `main`. The saved panel is a real dialog: role and label, Escape closes it,
+  focus moves in on open and back to the opener on close, and it is
+  `invisible` while closed so it leaves the tab order. Field chips and the
+  For You button expose `aria-pressed`; the Saved button announces that it
+  opens a dialog. The end-of-feed card is a polite live region, so loading
+  and error messages are read out. Buttons whose visible text is short
+  (PDF, Similar, Remove, Close) carry full labels. A visible focus ring is
+  applied with `:focus-visible`, so mouse users never see it. Arrow keys are
+  ignored while the drawer is open. Known gap: the small accent-coloured
+  field stamp on each card is below the AA contrast ratio on the paper
+  background; changing it would alter the design, so it is left as is.
+
 - **First page loaded twice in WebKit.** Found by the end-to-end suite: on
   load, WebKit showed 24 cards, page one appended to itself, with no
   scrolling. The server-rendered HTML has no skeletons, so the end-of-feed

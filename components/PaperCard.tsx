@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import type { Paper } from "@/lib/arxiv";
 
 function fmtDate(iso: string) {
@@ -32,9 +32,11 @@ export function PaperCard({
   onMoreLikeThis?: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const titleId = useId();
 
   return (
     <article
+      aria-labelledby={titleId}
       className="snap-card relative flex flex-col justify-between px-6 py-20 sm:px-12"
       style={{
         background: `radial-gradient(120% 80% at 50% 0%, ${accent}14 0%, transparent 60%)`,
@@ -55,9 +57,9 @@ export function PaperCard({
 
       {/* Middle: the paper itself */}
       <div className="mx-auto w-full max-w-2xl">
-        <h1 className="font-display text-3xl font-semibold leading-tight sm:text-5xl">
+        <h2 id={titleId} className="font-display text-3xl font-semibold leading-tight sm:text-5xl">
           {paper.title}
-        </h1>
+        </h2>
 
         <p className="mt-3 text-sm text-muted">
           {paper.authors.slice(0, 4).join(", ")}
@@ -103,7 +105,7 @@ export function PaperCard({
             rel="noreferrer"
             download
             className="rounded-full border border-line bg-paper px-5 py-3 text-sm font-semibold transition active:scale-95"
-            title="Open PDF"
+            aria-label="Open PDF"
           >
             PDF
           </a>
@@ -122,7 +124,7 @@ export function PaperCard({
           <button
             onClick={onMoreLikeThis}
             className="rounded-full border border-line bg-paper px-5 py-3 text-sm font-semibold transition active:scale-95"
-            title="Find similar papers"
+            aria-label="Find similar papers"
           >
             Similar
           </button>

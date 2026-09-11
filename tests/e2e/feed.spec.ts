@@ -76,7 +76,7 @@ test("saving a paper updates the counter and the drawer", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Saved · 1" })).toBeVisible();
 
   await page.getByRole("button", { name: "Saved · 1" }).click();
-  await expect(page.getByRole("complementary")).toContainText("AI & Machine Learning paper 0");
+  await expect(page.getByRole("dialog")).toContainText("AI & Machine Learning paper 0");
 });
 
 test("For You builds a feed from the saved fields", async ({ page }) => {

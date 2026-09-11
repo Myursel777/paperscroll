@@ -67,6 +67,8 @@ export function Feed() {
   // reads a stale value from the render it was created in.
   const loadingRef = useRef(false);
   loadingRef.current = loading;
+  const drawerOpenRef = useRef(false);
+  drawerOpenRef.current = drawerOpen;
 
   // Which fields to draw the "For You" candidate pool from: the ones you've
   // saved from most, or a sensible default before you've saved anything.
@@ -150,6 +152,7 @@ export function Feed() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+      if (drawerOpenRef.current) return; // the drawer owns the keyboard while open
       const target = e.target as HTMLElement | null;
       if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) return;
       const feed = feedRef.current;
@@ -215,9 +218,9 @@ export function Feed() {
     <div className="relative">
       <div className="fixed inset-x-0 top-0 z-30 bg-paper/80 px-4 py-3 backdrop-blur">
         <div className="mx-auto flex max-w-3xl items-center gap-3">
-          <span className="font-display text-lg font-semibold">
+          <h1 className="font-display text-lg font-semibold">
             Paper<span style={{ color: field.accent }}>Scroll</span>
-          </span>
+          </h1>
           <form
             className="flex-1"
             onSubmit={(e) => {
@@ -229,12 +232,15 @@ export function Feed() {
             <input
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
+              aria-label="Search within the current field"
               placeholder="Search a field…"
               className="w-full rounded-full border border-line bg-paper px-4 py-1.5 text-sm outline-none focus:border-ink"
             />
           </form>
           <button
             onClick={() => setDrawerOpen(true)}
+            aria-haspopup="dialog"
+            aria-expanded={drawerOpen}
             className="rounded-full border border-line px-4 py-1.5 text-sm font-medium"
           >
             Saved · {saved.length}
@@ -244,6 +250,7 @@ export function Feed() {
         <div className="mx-auto mt-2 flex max-w-3xl items-center gap-2">
           <button
             onClick={goForYou}
+            aria-pressed={mode === "foryou"}
             className="whitespace-nowrap rounded-full border px-4 py-1.5 text-sm font-semibold transition"
             style={
               mode === "foryou"
@@ -298,7 +305,12 @@ export function Feed() {
         <div
           className={`snap-card ${papers.length ? "" : "snap-off"} flex items-center justify-center px-6`}
         >
-          <div ref={sentinel} className="max-w-sm text-center text-sm text-muted">
+          <div
+            ref={sentinel}
+            role="status"
+            aria-live="polite"
+            className="max-w-sm text-center text-sm text-muted"
+          >
             {loading && "Loading papers…"}
             {!loading && error && (
               <div className="flex flex-col items-center gap-3">

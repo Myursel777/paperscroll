@@ -10,13 +10,18 @@ export function CategoryBar({
   onPick: (id: string) => void;
 }) {
   return (
-    <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div
+      role="group"
+      aria-label="Field of study"
+      className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+    >
       {FIELDS.map((f) => {
         const on = f.id === active;
         return (
           <button
             key={f.id}
             onClick={() => onPick(f.id)}
+            aria-pressed={on}
             className="whitespace-nowrap rounded-full border px-4 py-1.5 text-sm font-medium transition"
             style={
               on

@@ -14,6 +14,13 @@
 //     specific: a pattern that matches half of all papers is worse than none.
 //   - query: the arXiv search used when a reader taps the topic. It is one
 //     phrase because the API route wraps it as a single `all:` term.
+//   - gated (optional): the topic only applies to papers that carry one of
+//     its categories. Used where the vocabulary is shared with other areas,
+//     for example "gait" (robot locomotion, but also gait recognition in
+//     vision) or "replay" (memory in neuroscience, but also in RL and GPUs).
+//   - minScore (optional): a higher bar than the default in lib/tagger.ts,
+//     for topics whose single words are too common to trust on their own
+//     ("benchmark", "safety", "LLM").
 //
 // To add a topic, append an entry. tests/unit/topics.test.ts checks that ids
 // are unique, fields exist, and every pattern compiles.
@@ -28,6 +35,8 @@ export type Topic = {
   cats: string[];
   patterns: string[];
   query: string;
+  gated?: boolean;
+  minScore?: number;
 };
 
 export const TOPICS: Topic[] = [
@@ -36,6 +45,7 @@ export const TOPICS: Topic[] = [
     id: "llms",
     label: "Large language models",
     field: "ai-ml",
+    minScore: 3,
     description:
       "Large language models: pretraining, instruction tuning, prompting, in-context learning, and how these models behave and scale.",
     cats: ["cs.CL", "cs.LG", "cs.AI"],
@@ -148,6 +158,7 @@ export const TOPICS: Topic[] = [
     id: "interpretability",
     label: "Interpretability",
     field: "ai-ml",
+    minScore: 3,
     description:
       "Understanding what models compute: explanations, attribution, probing, mechanistic analysis, and sparse features.",
     cats: ["cs.LG", "cs.AI", "cs.CL"],
@@ -167,6 +178,7 @@ export const TOPICS: Topic[] = [
     id: "ai-safety",
     label: "Safety and alignment",
     field: "ai-ml",
+    minScore: 3,
     description:
       "Making models behave: alignment, RLHF, jailbreaks, adversarial attacks, hallucination, and misuse prevention.",
     cats: ["cs.AI", "cs.LG", "cs.CL", "cs.CR"],
@@ -222,14 +234,15 @@ export const TOPICS: Topic[] = [
     id: "efficient-ml",
     label: "Efficient models",
     field: "ai-ml",
+    gated: true,
     description:
       "Making models cheaper: quantisation, pruning, distillation, low-rank adapters, mixture of experts, and faster inference.",
-    cats: ["cs.LG", "cs.AR"],
+    cats: ["cs.LG", "cs.CL", "cs.CV", "cs.AI", "cs.AR"],
     patterns: [
       "\\bquantiz",
       "\\bpruning\\b",
       "\\bdistillation\\b",
-      "\\bsparsit",
+      "\\bsparse (attention|activation|models?)\\b",
       "\\blow[- ]rank\\b",
       "\\bLoRA\\b",
       "\\bparameter[- ]efficient\\b",
@@ -252,7 +265,7 @@ export const TOPICS: Topic[] = [
       "\\bcontrastive\\b",
       "\\brepresentation learning\\b",
       "\\bmasked (image|autoencod|language) model",
-      "\\bpretrain",
+      "\\bpre-?training objectives?\\b",
     ],
     query: "self-supervised",
   },
@@ -276,6 +289,7 @@ export const TOPICS: Topic[] = [
     id: "benchmarks",
     label: "Benchmarks and datasets",
     field: "ai-ml",
+    minScore: 3,
     description:
       "Papers whose main contribution is a new benchmark, dataset, leaderboard, or evaluation protocol.",
     cats: ["cs.LG", "cs.CL", "cs.CV"],
@@ -365,6 +379,7 @@ export const TOPICS: Topic[] = [
     id: "speech",
     label: "Speech and audio",
     field: "nlp",
+    gated: true,
     description: "Speech recognition, text-to-speech, spoken language understanding, and audio modelling.",
     cats: ["cs.CL", "cs.SD", "eess.AS"],
     patterns: [
@@ -476,7 +491,7 @@ export const TOPICS: Topic[] = [
     description: "Recovering 3D structure: reconstruction, depth, point clouds, NeRFs, Gaussian splatting, and pose.",
     cats: ["cs.CV", "cs.GR"],
     patterns: [
-      "\\b3D\\b",
+      "\\b3D (reconstruction|scenes?|shapes?|geometry|vision|objects?|points?|humans?|generation|models?|representations?)\\b",
       "\\bNeRFs?\\b",
       "\\bneural radiance\\b",
       "\\bGaussian splatting\\b",
@@ -491,15 +506,17 @@ export const TOPICS: Topic[] = [
     id: "video",
     label: "Video understanding",
     field: "vision",
+    gated: true,
     description: "Models for video: action recognition, tracking, temporal reasoning, and video generation.",
     cats: ["cs.CV"],
-    patterns: ["\\bvideos?\\b", "\\baction recognition\\b", "\\btracking\\b", "\\bspatio-?temporal\\b"],
+    patterns: ["\\bvideos?\\b", "\\baction recognition\\b", "\\bobject tracking\\b", "\\bvideo (understanding|generation|models?)\\b"],
     query: "video",
   },
   {
     id: "image-generation",
     label: "Image generation and editing",
     field: "vision",
+    gated: true,
     description: "Creating and editing images: text-to-image, inpainting, super-resolution, and restoration.",
     cats: ["cs.CV", "cs.GR"],
     patterns: [
@@ -528,6 +545,9 @@ export const TOPICS: Topic[] = [
       "\\bclinical\\b",
       "\\btumou?rs?\\b",
       "\\blesions?\\b",
+      "\\bcancer\\b",
+      "\\bmetasta",
+      "\\bpatients?\\b",
     ],
     query: "medical imaging",
   },
@@ -570,6 +590,7 @@ export const TOPICS: Topic[] = [
     id: "neural-coding",
     label: "Neural coding",
     field: "neuro",
+    gated: true,
     description: "How neurons represent information: population codes, tuning, receptive fields, and spike statistics.",
     cats: ["q-bio.NC"],
     patterns: [
@@ -586,6 +607,7 @@ export const TOPICS: Topic[] = [
     id: "brain-imaging",
     label: "Brain imaging",
     field: "neuro",
+    gated: true,
     description: "Measuring the brain: fMRI, EEG, MEG, calcium imaging, and the analysis methods that go with them.",
     cats: ["q-bio.NC", "eess.SP"],
     patterns: [
@@ -602,6 +624,7 @@ export const TOPICS: Topic[] = [
     id: "neuron-models",
     label: "Neuron and circuit models",
     field: "neuro",
+    gated: true,
     description: "Mathematical models of neurons and circuits: biophysical models, attractors, mean-field and network dynamics.",
     cats: ["q-bio.NC", "nlin.AO"],
     patterns: [
@@ -613,6 +636,8 @@ export const TOPICS: Topic[] = [
       "\\battractors?\\b",
       "\\bcortical (circuits?|models?|columns?)\\b",
       "\\bdendrit",
+      "\\bcriticality\\b",
+      "\\bmodels? of (real |single |cortical )?neurons\\b",
     ],
     query: "neuron model",
   },
@@ -620,6 +645,7 @@ export const TOPICS: Topic[] = [
     id: "brain-computer-interfaces",
     label: "Brain-computer interfaces",
     field: "neuro",
+    gated: true,
     description: "Decoding intent from neural signals to control devices, restore speech or movement, and give feedback.",
     cats: ["q-bio.NC", "cs.HC"],
     patterns: [
@@ -636,6 +662,7 @@ export const TOPICS: Topic[] = [
     id: "learning-memory",
     label: "Learning and memory",
     field: "neuro",
+    gated: true,
     description: "Plasticity, memory formation and recall, hippocampal function, and biological learning rules.",
     cats: ["q-bio.NC"],
     patterns: [
@@ -654,6 +681,7 @@ export const TOPICS: Topic[] = [
     id: "connectomics",
     label: "Connectivity and networks",
     field: "neuro",
+    gated: true,
     description: "Wiring of the brain: connectomes, functional and structural connectivity, and network analysis.",
     cats: ["q-bio.NC"],
     patterns: [
@@ -669,6 +697,7 @@ export const TOPICS: Topic[] = [
     id: "neuro-ai",
     label: "Brains and machines",
     field: "neuro",
+    gated: true,
     description: "Where neuroscience meets AI: brain-inspired models, comparing deep networks with the brain, predictive coding.",
     cats: ["q-bio.NC", "cs.NE", "cs.AI"],
     patterns: [
@@ -686,6 +715,7 @@ export const TOPICS: Topic[] = [
     id: "cognition-behaviour",
     label: "Cognition and behaviour",
     field: "neuro",
+    gated: true,
     description: "Decision making, perception, and behaviour in humans and animals, and the neural processes behind them.",
     cats: ["q-bio.NC"],
     patterns: [
@@ -693,7 +723,7 @@ export const TOPICS: Topic[] = [
       "\\bbehavio(u)?ral (tasks?|data|experiments?)\\b",
       "\\bpsychophysic",
       "\\bcognition\\b",
-      "\\bcognitive (control|maps?|tasks?|neuroscience)\\b",
+      "\\bcognitive (control|maps?|tasks?|neuroscience|load|processes)\\b",
       "\\b(mice|rodents?|monkeys?|primates?)\\b",
       "\\bhuman participants\\b",
     ],
@@ -726,7 +756,7 @@ export const TOPICS: Topic[] = [
     cats: ["stat.ME", "stat.ML", "econ.EM"],
     patterns: [
       "\\bcausal\\b",
-      "\\bcounterfactual",
+      "\\bcounterfactual(?! regret)",
       "\\btreatment effects?\\b",
       "\\binstrumental variable",
       "\\bconfound",
@@ -776,11 +806,11 @@ export const TOPICS: Topic[] = [
     description: "Why learning works: generalisation bounds, sample complexity, kernels, overparameterisation, and implicit bias.",
     cats: ["stat.ML", "cs.LG", "math.ST"],
     patterns: [
-      "\\bgenerali[sz]ation (bounds?|error|gap)\\b",
+      "\\bgenerali[sz]ation (bounds?|error|gap|analysis|guarantees?)\\b",
       "\\bsample complexity\\b",
       "\\bPAC\\b",
       "\\bRademacher\\b",
-      "\\bkernel (methods?|regression|ridge)\\b",
+      "\\bkernel[- ](methods?|regression|ridge|based)\\b",
       "\\bexcess risk\\b",
       "\\bimplicit (bias|regulari)",
       "\\boverparameteri[sz]",
@@ -839,6 +869,7 @@ export const TOPICS: Topic[] = [
     id: "locomotion",
     label: "Locomotion",
     field: "robotics",
+    gated: true,
     description: "Legged and humanoid robots: gaits, balance, walking and running controllers, exoskeletons.",
     cats: ["cs.RO"],
     patterns: [
@@ -856,8 +887,9 @@ export const TOPICS: Topic[] = [
     id: "navigation",
     label: "Navigation and SLAM",
     field: "robotics",
+    gated: true,
     description: "Knowing where the robot is and how to get somewhere: localisation, mapping, SLAM, and path planning.",
-    cats: ["cs.RO", "cs.CV"],
+    cats: ["cs.RO"],
     patterns: [
       "\\bSLAM\\b",
       "\\bnavigation\\b",
@@ -874,6 +906,7 @@ export const TOPICS: Topic[] = [
     id: "autonomous-driving",
     label: "Autonomous driving",
     field: "robotics",
+    gated: true,
     description: "Self-driving vehicles: perception with cameras and LiDAR, prediction, planning, and traffic scenarios.",
     cats: ["cs.RO", "cs.CV"],
     patterns: [
@@ -883,7 +916,6 @@ export const TOPICS: Topic[] = [
       "\\bLiDAR\\b",
       "\\btraffic\\b",
       "\\bpedestrians?\\b",
-      "\\bvehicles?\\b",
     ],
     query: "autonomous driving",
   },
@@ -934,7 +966,7 @@ export const TOPICS: Topic[] = [
       "\\bbehavio(u)?r cloning\\b",
       "\\bvisuomotor\\b",
       "\\brobot (learning|polic)",
-      "\\bdemonstrations?\\b",
+      "\\b(human|expert|from) demonstrations?\\b",
       "\\bvision-language-action\\b",
       "\\bVLA\\b",
       "\\bdiffusion polic",

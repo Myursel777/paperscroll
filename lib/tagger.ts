@@ -9,8 +9,10 @@
 //   +1 for each pattern found in the abstract
 //   +1 if the paper carries one of the topic's arXiv categories, but only
 //      when at least one pattern matched (a category alone never tags)
-// A topic needs a score of MIN_SCORE to count. One title hit is enough; one
-// stray word in the abstract is not. Ties keep the taxonomy order.
+// A topic needs a score of MIN_SCORE to count (a topic may raise its own bar
+// with minScore). One title hit is enough; one stray word in the abstract is
+// not. A topic marked `gated` is skipped unless the paper carries one of its
+// categories. Ties keep the taxonomy order.
 //
 // The embedding tagger (tagger v2, in the Python service) uses the same
 // taxonomy and the same MAX_TAGS, so the two can be swapped or combined.
@@ -51,6 +53,9 @@ export function scoreTopics(paper: Taggable): TopicScore[] {
 
   const scored: TopicScore[] = [];
   for (const { topic, regexes, cats: topicCats } of compiled) {
+    const inCategory = [...cats].some((c) => topicCats.has(c));
+    if (topic.gated && !inCategory) continue;
+
     let score = 0;
     const hits: string[] = [];
     for (const re of regexes) {
@@ -60,8 +65,8 @@ export function scoreTopics(paper: Taggable): TopicScore[] {
       if (inAbstract) score += ABSTRACT_WEIGHT;
       if (inTitle || inAbstract) hits.push(re.source);
     }
-    if (hits.length > 0 && [...cats].some((c) => topicCats.has(c))) score += CATEGORY_WEIGHT;
-    if (score >= MIN_SCORE) scored.push({ id: topic.id, score, hits });
+    if (hits.length > 0 && inCategory) score += CATEGORY_WEIGHT;
+    if (score >= (topic.minScore ?? MIN_SCORE)) scored.push({ id: topic.id, score, hits });
   }
   // Array.prototype.sort is stable, so equal scores stay in taxonomy order.
   return scored.sort((a, b) => b.score - a.score);

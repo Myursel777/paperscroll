@@ -30,6 +30,7 @@ the sitemap and share preview use it.
 | `npm run lint` | ESLint with the Next.js rules |
 | `npm test` | Unit tests (Vitest) in `tests/unit` |
 | `npm run test:e2e` | End-to-end tests (Playwright) in `tests/e2e`; run `npm run build` first |
+| `npx tsx scripts/tag-report.ts` | Tagger quality report over the saved sample in `tests/fixtures`; `fetch` pulls a new sample, `eval` scores labelled papers |
 
 The end-to-end tests answer `/api/papers` from a fake inside the browser, so
 they never call arXiv. Before the first run, download the browser engines with
@@ -48,6 +49,10 @@ Progress and reasoning live in [docs/ROADMAP.md](docs/ROADMAP.md) and
 - **For You** — a personalised feed ranked by how similar each paper is to the
   ones you've saved (see "Recommender" below). Works with zero setup.
 - **Similar** — "more like this" on any card, ranked by content similarity.
+- **Topics**: every paper carries up to three topic tags (for example
+  "Diffusion models" or "Medical imaging") from a fixed taxonomy of 56 topics
+  in `lib/topics.ts`. Tags are computed on the server by a rule-based tagger.
+  Tap a tag, or a topic chip under the field chips, to browse that topic.
 - **Search** within a field.
 - **Save for later** (stored in the browser via `localStorage`, no login).
 - **Read** (arXiv abstract page) and **PDF** links on every card.
@@ -104,6 +109,8 @@ components/
   RegisterSW.tsx        Registers the service worker in production
 lib/
   arxiv.ts              Types, FIELDS map, XML to Paper parser
+  topics.ts             Topic taxonomy: 56 topics with patterns, categories, and searches
+  tagger.ts             Rule-based tagger: up to three topics per paper, explainable
   arxivClient.ts        The only code that talks to arXiv: queue, cache, backoff
   rateLimit.ts          Sliding-window limiter used by the API route
   recommender.ts        Dependency-free TF-IDF + cosine recommender
@@ -114,8 +121,11 @@ public/
   sw.js                 Service worker: caches the app shell, never the API
   icon-192.png, icon-512.png
 tests/
-  unit/                 Vitest: arXiv client rules, rate limiter, recommender
+  unit/                 Vitest: arXiv client rules, rate limiter, recommender, taxonomy, tagger
   e2e/                  Playwright: the main user journey with a mocked API
+  fixtures/             150-paper sample used by the tagger report
+scripts/
+  tag-report.ts         Tagger quality report, sample fetch, precision and recall
 docs/
   ROADMAP.md            Phase-by-phase checklist
   WORKLOG.md            What changed, why, and how it was checked

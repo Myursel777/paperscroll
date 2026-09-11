@@ -5,6 +5,25 @@ so the git history can be read without re-deriving the reasoning.
 
 ## 2026-09-11: Phase 2 started (topic tagging)
 
+- **Tagger evaluation and tuning.** `scripts/tag-report.ts` pulls one polite
+  request per field (25 papers each) into `tests/fixtures/tag-sample.json`
+  and prints every paper with its tags and the patterns that fired, plus the
+  tag distribution. Reading the first report showed three kinds of mistakes:
+  words shared across areas ("replay", "gait", "localization", "decision
+  making" firing on machine-learning papers), single common words plus a
+  category being enough for the broadest topics ("benchmark", "LLM",
+  "safety", "explanations", "pretrain"), and bare patterns ("3D",
+  "vehicles", "spatio-temporal"). Fixes: a topic can be `gated` to its own
+  categories (all neuroscience topics, video, image generation, locomotion,
+  navigation, driving, speech, efficient models), a topic can set a higher
+  `minScore` (benchmarks, LLMs, safety, interpretability need a title hit or
+  two abstract hits), and the bare patterns were tightened. A second pass
+  fixed three regressions found by diffing the reports. Result on the
+  sample: benchmark tags 23 to 3, LLM tags 38 to 27, 132 of 150 papers
+  tagged, and the remaining untagged ones are mostly outside the taxonomy
+  (pure maths, molecular biology). Hand-labelling for precision and recall
+  is the open item; the script'"'"'s `eval` mode is ready for it.
+
 - **Topics in the UI.** Each card shows its tags as small chips under the
   author line; tapping one switches to the topic's field and runs the
   topic's arXiv search, so a topic is just another query like a field is.

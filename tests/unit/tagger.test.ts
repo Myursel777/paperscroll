@@ -53,6 +53,21 @@ describe("rule-based tagger", () => {
     expect(tagPaper(doc("Untitled", "No relevant words here.", ["cs.CV", "cs.RO", "q-bio.NC"]))).toEqual([]);
   });
 
+  it("skips gated topics when the paper is outside their categories", () => {
+    // "replay" is a memory term in neuroscience and a GPU term elsewhere.
+    const gpu = doc("Faster solvers via CUDA graph replay", "", ["cs.LG"]);
+    expect(tagPaper(gpu)).not.toContain("learning-memory");
+    const neuro = doc("Hippocampal replay during sleep", "", ["q-bio.NC"]);
+    expect(tagPaper(neuro)).toContain("learning-memory");
+  });
+
+  it("lets a topic demand a higher score than the default", () => {
+    // One mention of "benchmark" in an abstract is not a benchmark paper...
+    expect(tagPaper(doc("A new optimizer", "We evaluate on standard benchmarks.", ["cs.LG"]))).not.toContain("benchmarks");
+    // ...but a benchmark in the title is.
+    expect(tagPaper(doc("A benchmark for long-context reading", "", ["cs.CL"]))).toContain("benchmarks");
+  });
+
   it("explains each tag with the patterns that matched", () => {
     const [best] = scoreTopics(doc("Conformal prediction under distribution shift", "", ["stat.ML"]));
     expect(best.id).toBe("uncertainty");

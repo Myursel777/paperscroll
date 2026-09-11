@@ -41,7 +41,8 @@ on the server, never in the browser while scrolling.
 - [ ] Tagger v2 (embeddings): cosine between abstract and topic descriptions, threshold, max three tags
 - [x] Tags returned with every paper by the API route (a `paper_tags` table comes with Phase 3)
 - [x] Tag chips on cards, tap to search that topic, topics row under the field chips
-- [ ] Evaluation: hand-label 200 papers, precision and recall per topic, tune threshold
+- [x] Report script over a saved 150-paper sample (25 per field), two tuning passes by reading every tagged paper: category gating, per-topic thresholds, tighter patterns
+- [ ] Hand-label the sample (`expected` in `tests/fixtures/tag-sample.json`) and run `npx tsx scripts/tag-report.ts eval` for precision and recall per topic
 
 ## Phase 3: accounts (Supabase free tier)
 

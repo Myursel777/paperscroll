@@ -11,6 +11,12 @@ account on first login. The account system switches on only when the two
 public Supabase values are present in `.env.local`, so the site keeps working
 with zero setup.
 
+- **Connected to a real project.** Tables, function, and auth settings checked
+  from the command line with the public key (all three tables answer, the
+  delete function refuses anonymous calls, email confirmation is on). The
+  owner then signed up with a real address: the confirmation email arrived,
+  the link signed them in, and onboarding saved the field and topics.
+
 - **Finishing touches.** Branded confirmation and reset emails for the day a
   mail provider is configured (Supabase only allows editing templates with
   custom SMTP), a daily keep-alive workflow (one read a day keeps

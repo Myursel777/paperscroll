@@ -46,6 +46,8 @@ on the server, never in the browser while scrolling.
 
 ## Phase 3: accounts (Supabase free tier)
 
+Done, and verified against a real project with a real inbox.
+
 Tables: profiles, saved_papers, collections, events, user_topics, papers,
 paper_tags, paper_embeddings (pgvector). Row-level security on every table.
 

@@ -71,6 +71,8 @@ test("a paper saved while logged out is merged into the account on first login",
   await createConfirmedUser(page, email);
   await page.goto("/");
   await expect(savedCounter(page)).toHaveText("Saved · 1");
+  // The counter is busy while the first sync (including the upload) runs.
+  await expect(savedCounter(page)).toHaveAttribute("aria-busy", "false");
 
   // Wipe the browser copy: the account must still have the paper.
   await page.evaluate(() => localStorage.clear());

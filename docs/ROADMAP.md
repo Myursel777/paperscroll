@@ -49,12 +49,12 @@ on the server, never in the browser while scrolling.
 Tables: profiles, saved_papers, collections, events, user_topics, papers,
 paper_tags, paper_embeddings (pgvector). Row-level security on every table.
 
-- [ ] Auth: email and password, magic link, Google sign-in
-- [ ] Pages: sign up, log in, forgot password, reset password, verify email, onboarding (pick three topics)
-- [ ] Account pages: profile, settings, security, data (export and delete)
-- [ ] Library page with collections, search, sort; localStorage saves merge on first login
+- [x] Auth: email and password (magic link and Google sign-in deferred; both are switches in Supabase plus one button each)
+- [x] Pages: sign up, log in, forgot password, reset password, verify email, onboarding (default field plus at least three topics)
+- [x] Account pages: profile, settings, security, data (export and delete, no service key needed)
+- [x] Library page with collections, search, sort; localStorage saves merge on first login
 - [ ] Branded email templates
-- [ ] Route protection in middleware; logged-out visitors keep the read-only experience
+- [x] Route protection in middleware; logged-out visitors keep the full experience with saves in the browser
 - [ ] Weekly keep-alive ping so the free project does not pause
 
 ## Phase 4: For You v2

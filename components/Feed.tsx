@@ -10,6 +10,7 @@ import {
 } from "@/lib/arxiv";
 import { topicById, topicsForField } from "@/lib/topics";
 import { useUser, userInitial } from "@/lib/auth/useUser";
+import { useProfile } from "@/lib/profile";
 import { accountsEnabled } from "@/lib/supabase/config";
 import { useSaved } from "@/lib/useSaved";
 import { recommend, similarTo } from "@/lib/recommender";
@@ -69,8 +70,21 @@ export function Feed() {
 
   const field = fieldById(fieldId);
   const fieldTopics = topicsForField(fieldId);
-  const { saved, isSaved, toggle, remove } = useSaved();
+  const { saved, isSaved, toggle, remove, signedIn, syncing } = useSaved();
   const { user } = useUser();
+  const { profile } = useProfile();
+
+  // Signed in: open on the profile's default field, once, unless the reader
+  // has already picked something.
+  const appliedDefault = useRef(false);
+  useEffect(() => {
+    if (!profile || appliedDefault.current) return;
+    appliedDefault.current = true;
+    if (mode === "field" && fieldId === "ai-ml" && !query && !topicId && profile.default_field !== fieldId) {
+      setFieldId(profile.default_field);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile]);
   const sentinel = useRef<HTMLDivElement | null>(null);
   const feedRef = useRef<HTMLDivElement | null>(null);
   // Mirrors `loading` for the IntersectionObserver callback, which otherwise
@@ -298,6 +312,7 @@ export function Feed() {
             onClick={() => setDrawerOpen(true)}
             aria-haspopup="dialog"
             aria-expanded={drawerOpen}
+            aria-busy={syncing}
             className="rounded-full border border-line px-4 py-1.5 text-sm font-medium"
           >
             Saved · {saved.length}
@@ -444,6 +459,7 @@ export function Feed() {
         saved={saved}
         onClose={() => setDrawerOpen(false)}
         onRemove={remove}
+        libraryLink={signedIn}
       />
     </div>
   );

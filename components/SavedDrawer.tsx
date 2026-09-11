@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef } from "react";
 import type { SavedPaper } from "@/lib/useSaved";
 
@@ -14,11 +15,14 @@ export function SavedDrawer({
   saved,
   onClose,
   onRemove,
+  libraryLink = false,
 }: {
   open: boolean;
   saved: SavedPaper[];
   onClose: () => void;
   onRemove: (id: string) => void;
+  /** Show the link to the full library (signed-in users). */
+  libraryLink?: boolean;
 }) {
   const panel = useRef<HTMLElement | null>(null);
   const opener = useRef<HTMLElement | null>(null);
@@ -71,9 +75,16 @@ export function SavedDrawer({
           <h2 id="saved-drawer-title" className="font-display text-xl font-semibold">
             Saved · {saved.length}
           </h2>
-          <button onClick={onClose} aria-label="Close saved papers" className="text-sm text-muted">
-            Close
-          </button>
+          <div className="flex items-center gap-4">
+            {libraryLink && (
+              <Link href="/saved" className="text-sm font-medium text-ink underline underline-offset-4">
+                Open library
+              </Link>
+            )}
+            <button onClick={onClose} aria-label="Close saved papers" className="text-sm text-muted">
+              Close
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4">

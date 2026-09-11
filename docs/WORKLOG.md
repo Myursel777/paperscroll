@@ -11,6 +11,21 @@ account on first login. The account system switches on only when the two
 public Supabase values are present in `.env.local`, so the site keeps working
 with zero setup.
 
+- **Account section, onboarding, library.** `/account` (name), `/account/settings`
+  (default field, interests as topic chips), `/account/security` (change
+  password, sign out everywhere), `/account/data` (download everything as
+  JSON, delete the account through the database function). `/onboarding`
+  asks for a default field and at least three topics after the first login;
+  the feed then opens on that field. `/saved` is the library: search, sort,
+  collections (create, rename, delete, file papers), with a link from the
+  drawer for signed-in readers. Signing out clears the browser copy of the
+  saves so nothing stays behind on a shared device. One race found by the
+  WebKit run: the settings and onboarding forms seeded their state from the
+  profile after the reader had already clicked, wiping the clicks; the
+  fieldsets are now disabled until the profile has loaded. The Saved button
+  carries `aria-busy` while the account sync runs, so tests (and assistive
+  tech) can tell when it is done.
+
 - **Saved papers follow the account.** `useSaved` keeps localStorage as the
   always-on browser copy. When a user is signed in it pulls the account's
   list; the first time in a browser the two are merged and browser-only

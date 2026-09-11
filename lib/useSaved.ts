@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { Paper } from "@/lib/arxiv";
 import { useUser } from "@/lib/auth/useUser";
 import { mergeSaved, normaliseSaved, type SavedPaper } from "@/lib/saved/merge";
-import { deleteRemoteSaved, fetchRemoteSaved, upsertRemoteSaved } from "@/lib/saved/remote";
+import { deleteRemoteSaved, fetchRemoteSaved, setRemoteCollection, upsertRemoteSaved } from "@/lib/saved/remote";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 
 export type { SavedPaper } from "@/lib/saved/merge";
@@ -156,5 +156,17 @@ export function useSaved() {
     [saved, persist],
   );
 
-  return { saved, isSaved, toggle, remove, syncing, signedIn: userId !== null };
+  /** File a saved paper under a collection (or none). Signed-in only; written straight through. */
+  const setCollection = useCallback(
+    async (paperId: string, collectionId: string | null) => {
+      const next = saved.map((p) => (p.id === paperId ? { ...p, collectionId } : p));
+      setSaved(next);
+      writeLocal(next);
+      const supabase = getSupabaseBrowser();
+      if (supabase && userId) await setRemoteCollection(supabase, userId, paperId, collectionId);
+    },
+    [saved, userId],
+  );
+
+  return { saved, isSaved, toggle, remove, setCollection, syncing, signedIn: userId !== null };
 }

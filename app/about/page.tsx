@@ -42,7 +42,10 @@ export default function AboutPage() {
           The default engine is a word-based TF-IDF model that runs in your browser. An optional
           neural model, using sentence embeddings, can take over when it is available.
         </li>
-        <li>Saved papers live in your browser only. There is no login and no tracking.</li>
+        <li>
+          Saved papers live in your browser. With an optional account they also sync across
+          your devices. There is no tracking either way.
+        </li>
       </ul>
 
       <h2>Credits</h2>

@@ -61,7 +61,14 @@ Progress and reasoning live in [docs/ROADMAP.md](docs/ROADMAP.md) and
   tagger in `lib/tagger.ts` otherwise. Tap a tag, or a topic chip under the
   field chips, to browse that topic.
 - **Search** within a field.
-- **Save for later** (stored in the browser via `localStorage`, no login).
+- **Save for later** (stored in the browser via `localStorage`, no login needed).
+- **Accounts** (optional, Supabase free tier): sign up with email and password
+  and your saved papers follow you across devices, with a library page
+  (search, sort, collections), onboarding that picks your default field and
+  interests, and account pages for profile, settings, security, and your data
+  (export or delete). Logged-out visitors keep everything with saves in the
+  browser; local saves merge into the account on first login. See
+  `supabase/README.md` for the ten-minute setup, or run without it.
 - **Read** (arXiv abstract page) and **PDF** links on every card.
 - **Infinite scroll** — new pages load automatically as you near the end.
 - **Installable**: a web app manifest and a small service worker let you add
@@ -105,6 +112,11 @@ Two layers, both included:
 ```
 app/
   api/papers/route.ts   API route: parses the request, applies the per-visitor throttle, returns JSON
+  auth/callback/        Where the links in Supabase's emails land (code exchange)
+  login/ signup/ forgot-password/ reset-password/ verify-email/   Sign-in pages
+  account/              Profile, settings, security, your data (signed in)
+  onboarding/           Default field and interests after the first login
+  saved/                The library: search, sort, collections (signed in)
   layout.tsx            HTML shell, fonts, metadata (icons, manifest, share preview)
   page.tsx              Renders <Feed/>
   globals.css           Scroll-snap feed, design tokens, text-page styles
@@ -113,6 +125,9 @@ app/
   about/ privacy/ terms/ offline/   Text pages
   manifest.ts sitemap.ts robots.ts opengraph-image.tsx   Generated metadata files
 components/
+  auth/                 Form kit and the sign-in forms
+  account/              Account section forms, onboarding, interest picker
+  library/Library.tsx   The library page
   Feed.tsx              Core: fetch, infinite scroll, search, modes, keyboard, state
   PaperCard.tsx         One full-screen paper
   SkeletonCard.tsx      Placeholder while a page loads
@@ -129,8 +144,17 @@ lib/
   rateLimit.ts          Sliding-window limiter used by the API route
   recommender.ts        Dependency-free TF-IDF + cosine recommender
   neuralRecommender.ts  Client for the optional neural service, with fallback
-  useSaved.ts           localStorage save hook
+  useSaved.ts           Saved papers: browser copy plus account sync with a retry queue
+  saved/                Merge logic, Supabase calls, collections
+  supabase/             Browser and server clients, on/off switch
+  auth/                 useUser hook, friendly error messages
+  profile.ts            The profile row (default field, interests)
   site.ts               Site name, URL, owner, repository link
+middleware.ts           Refreshes the session and guards account pages
+supabase/
+  migrations/           The database as one SQL file (tables, row-level security)
+  email-templates/      Branded confirmation and reset emails
+  README.md             Setup in ten minutes
 public/
   sw.js                 Service worker: caches the app shell, never the API
   icon-192.png, icon-512.png
@@ -140,6 +164,8 @@ tests/
   fixtures/             150-paper sample used by the tagger report
 scripts/
   tag-report.ts         Tagger quality report, sample fetch, precision and recall
+  fake-supabase.ts      In-memory stand-in for Supabase, for development and tests
+  with-test-env.mjs     Runs a command with the test build folder and fake Supabase address
 docs/
   ROADMAP.md            Phase-by-phase checklist
   WORKLOG.md            What changed, why, and how it was checked

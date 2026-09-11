@@ -1,6 +1,7 @@
 /node_modules
 /.next
 /.next-test
+/.next-prodcheck
 /out
 .DS_Store
 *.tsbuildinfo

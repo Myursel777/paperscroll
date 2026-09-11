@@ -53,9 +53,9 @@ paper_tags, paper_embeddings (pgvector). Row-level security on every table.
 - [x] Pages: sign up, log in, forgot password, reset password, verify email, onboarding (default field plus at least three topics)
 - [x] Account pages: profile, settings, security, data (export and delete, no service key needed)
 - [x] Library page with collections, search, sort; localStorage saves merge on first login
-- [ ] Branded email templates
+- [x] Branded email templates (`supabase/email-templates/`, pasted into the dashboard)
 - [x] Route protection in middleware; logged-out visitors keep the full experience with saves in the browser
-- [ ] Weekly keep-alive ping so the free project does not pause
+- [x] Daily keep-alive ping (`.github/workflows/keep-alive.yml`, needs two repository secrets)
 
 ## Phase 4: For You v2
 

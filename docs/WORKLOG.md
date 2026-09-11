@@ -11,6 +11,14 @@ account on first login. The account system switches on only when the two
 public Supabase values are present in `.env.local`, so the site keeps working
 with zero setup.
 
+- **Finishing touches.** Branded confirmation and reset emails to paste into
+  the Supabase dashboard, a daily keep-alive workflow (one read a day keeps
+  the free project from pausing; it needs the project URL and anon key as
+  repository secrets and does nothing without them), and the README, About,
+  and Privacy pages updated for accounts. Not done yet: connecting a real
+  Supabase project, which needs the two public values in `.env.local`, then
+  a manual pass through sign-up with a real inbox.
+
 - **Account section, onboarding, library.** `/account` (name), `/account/settings`
   (default field, interests as topic chips), `/account/security` (change
   password, sign out everywhere), `/account/data` (download everything as

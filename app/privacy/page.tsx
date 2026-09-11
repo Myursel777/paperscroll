@@ -13,9 +13,9 @@ export default function PrivacyPage() {
       <p className="text-sm text-muted">Last updated {lastUpdated}</p>
 
       <p>
-        PaperScroll is run by {ownerName} as a student project. The short version: there are no
-        accounts, no analytics, no advertising, and no cookies. This page explains the little that
-        does happen.
+        PaperScroll is run by {ownerName} as a student project. The short version: no analytics,
+        no advertising, and no cookies unless you create an account, which is optional. This page
+        explains the little that does happen.
       </p>
 
       <h2>What stays in your browser</h2>
@@ -30,6 +30,17 @@ export default function PrivacyPage() {
           cached this way.
         </li>
       </ul>
+
+      <h2>If you create an account</h2>
+      <p>
+        Accounts are optional and run on Supabase, a hosted database service, on its free plan.
+        Creating one stores your email address, a hashed password, the name you choose, your
+        settings (default field and interests), your saved papers, and your collections. Nothing
+        is stored that you did not type or save yourself. A login cookie keeps you signed in. You
+        can download everything as a file or delete the account, with all its data, from the Your
+        data page at any time. Emails are sent only to confirm your address and to reset your
+        password.
+      </p>
 
       <h2>What the server sees</h2>
       <p>
@@ -64,8 +75,8 @@ export default function PrivacyPage() {
 
       <h2>Changes</h2>
       <p>
-        If accounts or other features that store data are added, this page will be updated first and
-        the date above will change.
+        If features that store more data are added, this page will be updated first and the date
+        above will change.
       </p>
     </PageShell>
   );

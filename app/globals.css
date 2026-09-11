@@ -20,6 +20,7 @@ body {
   overflow-y: scroll;
   scroll-snap-type: y mandatory;
   scrollbar-width: none; /* Firefox */
+  overflow-anchor: none; /* never keep the end-of-feed card in view when pages are inserted above it */
 }
 .feed::-webkit-scrollbar {
   display: none; /* Chrome/Safari */
@@ -28,6 +29,13 @@ body {
   height: 100dvh;
   scroll-snap-align: start;
   scroll-snap-stop: always;
+}
+/* While a feed is loading, the status card at the end is the only card. If it
+   were a snap target, Chrome would re-snap to it once the papers are inserted
+   above it, jumping to the end of the feed and triggering infinite scroll for
+   page after page. */
+.snap-card.snap-off {
+  scroll-snap-align: none;
 }
 
 /* Clamp the abstract to a readable preview, expandable on the card. */

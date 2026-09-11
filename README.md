@@ -49,7 +49,7 @@ Two layers, both included:
 
 ```
 app/
-  api/papers/route.ts   Server proxy: queries arXiv, returns clean JSON
+  api/papers/route.ts   Server proxy: queues and caches arXiv queries, returns clean JSON
   layout.tsx            Fonts + shell
   page.tsx              Renders <Feed/>
   globals.css           Scroll-snap feed + design tokens
@@ -107,8 +107,17 @@ logic port almost unchanged; you rebuild the UI with native components and a
 `FlatList` with paging enabled for the swipe feed. One backend, two clients.
 
 ## Notes & etiquette
-- arXiv asks API clients to identify themselves and not hammer the API — this
-  app caches responses for 60s and sends a `User-Agent`. Keep that.
+- arXiv asks API clients to identify themselves and to make at most one request
+  every three seconds. `app/api/papers/route.ts` is the only place that talks
+  to arXiv, and it is deliberately gentle: it sends a `User-Agent`, pushes every
+  call through a single queue with three seconds between calls, caches each
+  query in memory for ten minutes, and shares one call between identical
+  requests that arrive together. Keep all of that.
+- If arXiv answers 429 (too many requests), the route serves the cached copy of
+  that query if it has one, and otherwise returns a short message and stops
+  calling arXiv for a minute. It never retries in a loop; that only makes the
+  throttle last longer. If you get throttled during development, wait a few
+  minutes before trying again.
 - arXiv content is the authors'; this app only links to it, never rehosts it.
 
 ## License

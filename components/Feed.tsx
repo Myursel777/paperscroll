@@ -16,12 +16,20 @@ import { SavedDrawer } from "@/components/SavedDrawer";
 const PER_PAGE = 12;
 type Mode = "field" | "foryou" | "similar";
 
-// Fetch one page of a field from our API route.
+const STALE_NOTICE =
+  "arXiv is rate limiting us right now, so these are cached results.";
+
+// Fetch one page of a field from our API route. The route queues and caches
+// arXiv calls, so calling this freely from the client is safe; on a 429 it
+// returns whatever it cached before, flagged as stale.
 async function fetchField(field: string, q = "", start = 0, max = PER_PAGE) {
   const params = new URLSearchParams({ field, q, start: String(start), max: String(max) });
   const res = await fetch(`/api/papers?${params}`);
   const data = await res.json();
-  return { papers: (data.papers ?? []) as Paper[], error: data.error as string | undefined };
+  return {
+    papers: (data.papers ?? []) as Paper[],
+    error: (data.error as string | undefined) ?? (data.stale ? STALE_NOTICE : undefined),
+  };
 }
 
 function dedupe(papers: Paper[]) {
@@ -74,10 +82,14 @@ export function Feed() {
     [fieldId, query, start],
   );
 
+  // These requests are serialised and cached by the API route, so fanning
+  // out here does not burst arXiv.
   const loadForYou = useCallback(async () => {
     const results = await Promise.all(poolFields().map((f) => fetchField(f, "", 0, 20)));
     const pool = dedupe(results.flatMap((r) => r.papers));
-    if (!pool.length) setError("Could not load recommendations. Try again.");
+    const err = results.find((r) => r.error)?.error;
+    if (err) setError(err);
+    else if (!pool.length) setError("Could not load recommendations. Try again.");
     setPapers(recommend(saved, pool).map((s) => s.paper));
     setDone(true);
   }, [poolFields, saved]);
@@ -228,7 +240,9 @@ export function Feed() {
           );
         })}
 
-        <div className="snap-card flex items-center justify-center px-6">
+        <div
+          className={`snap-card ${papers.length ? "" : "snap-off"} flex items-center justify-center px-6`}
+        >
           <div ref={sentinel} className="max-w-sm text-center text-sm text-muted">
             {loading && "Loading papers…"}
             {!loading && error && <span className="text-ink">{error}</span>}

@@ -1,12 +1,14 @@
 import { defineConfig, devices } from "@playwright/test";
 
-// End-to-end tests drive the real production build in real browser engines.
-// The API is mocked inside each test (see tests/e2e), so the suite never
-// touches arXiv and cannot be rate limited.
+// End-to-end tests drive a production build in real browser engines.
+// The papers API is mocked inside each test, so the suite never touches
+// arXiv, and accounts talk to the fake Supabase in scripts/fake-supabase.ts,
+// so no project or network is needed.
 //
-// Locally: `npm run build` once, then `npm run test:e2e`. The config starts
-// `npm run start` for you unless a server is already listening on the port.
-// Set PORT (for example PORT=3001) when a dev server already occupies 3000.
+// Locally: `npm run build:test` once (builds into .next-test with the fake
+// Supabase address baked in), then `npm run test:e2e`. The config starts the
+// fake Supabase and the app for you unless they are already listening. Set
+// PORT (for example PORT=3001) when a dev server already occupies 3000.
 const port = process.env.PORT ?? "3000";
 const baseURL = `http://localhost:${port}`;
 
@@ -24,12 +26,20 @@ export default defineConfig({
     // is checked by hand in a production build, see docs/WORKLOG.md.
     serviceWorkers: "block",
   },
-  webServer: {
-    command: `npm run start -- -p ${port}`,
-    url: baseURL,
-    reuseExistingServer: !process.env.CI,
-    timeout: 60_000,
-  },
+  webServer: [
+    {
+      command: "npm run fake-supabase",
+      url: "http://localhost:54321/",
+      reuseExistingServer: !process.env.CI,
+      timeout: 30_000,
+    },
+    {
+      command: `npm run start:test -- -p ${port}`,
+      url: baseURL,
+      reuseExistingServer: !process.env.CI,
+      timeout: 60_000,
+    },
+  ],
   // Three engines cover Chrome and Edge, Firefox, and Safari. The mobile
   // project checks the touch layout the app is really made for.
   projects: [

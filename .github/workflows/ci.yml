@@ -1,6 +1,7 @@
 # Runs on every push and pull request: lint, types, unit tests, production
 # build, then the end-to-end suite in Chromium, Firefox, and WebKit.
-# The end-to-end tests mock the papers API, so CI never calls arXiv.
+# The end-to-end tests mock the papers API and use an in-memory fake of
+# Supabase, so CI never calls arXiv or any external service.
 name: CI
 
 on:
@@ -23,6 +24,7 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      - run: npm run build:test
 
       - run: npx playwright install --with-deps chromium firefox webkit
       - run: npm run test:e2e

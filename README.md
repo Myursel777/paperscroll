@@ -29,14 +29,16 @@ the sitemap and share preview use it.
 | `npm run typecheck` | TypeScript, no emit |
 | `npm run lint` | ESLint with the Next.js rules |
 | `npm test` | Unit tests (Vitest) in `tests/unit` |
-| `npm run test:e2e` | End-to-end tests (Playwright) in `tests/e2e`; run `npm run build` first |
+| `npm run build:test` | Production build into `.next-test` with the fake Supabase address baked in, for the tests |
+| `npm run test:e2e` | End-to-end tests (Playwright) in `tests/e2e`; run `npm run build:test` first. Starts the fake Supabase and the app |
+| `npm run fake-supabase` | In-memory stand-in for Supabase on :54321, for developing the account features offline |
 | `npx tsx scripts/tag-report.ts` | Tagger quality report over the saved sample in `tests/fixtures`; `fetch` pulls a new sample, `eval` scores labelled papers |
 
-The end-to-end tests answer `/api/papers` from a fake inside the browser, so
-they never call arXiv. If a dev server is already running on port 3000, build
-and test in a separate folder and port: `NEXT_DIST_DIR=.next-test npm run build`
-then `NEXT_DIST_DIR=.next-test PORT=3001 npm run test:e2e` (in PowerShell set the
-variables with `$env:NAME = "value"` first). Before the first run, download the browser engines with
+The end-to-end tests answer `/api/papers` from a fake inside the browser and
+talk to the fake Supabase for accounts, so they never call arXiv or any
+external service. If a dev server is already running on port 3000, run the
+tests on another port: `PORT=3001 npm run test:e2e` (in PowerShell:
+`$env:PORT = "3001"` first). Before the first run, download the browser engines with
 `npx playwright install chromium firefox webkit`. GitHub Actions runs all of
 the above on every push (`.github/workflows/ci.yml`).
 

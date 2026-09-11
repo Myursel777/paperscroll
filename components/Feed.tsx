@@ -9,6 +9,8 @@ import {
   type Paper,
 } from "@/lib/arxiv";
 import { topicById, topicsForField } from "@/lib/topics";
+import { useUser, userInitial } from "@/lib/auth/useUser";
+import { accountsEnabled } from "@/lib/supabase/config";
 import { useSaved } from "@/lib/useSaved";
 import { recommend, similarTo } from "@/lib/recommender";
 import { rankNeural } from "@/lib/neuralRecommender";
@@ -68,6 +70,7 @@ export function Feed() {
   const field = fieldById(fieldId);
   const fieldTopics = topicsForField(fieldId);
   const { saved, isSaved, toggle, remove } = useSaved();
+  const { user } = useUser();
   const sentinel = useRef<HTMLDivElement | null>(null);
   const feedRef = useRef<HTMLDivElement | null>(null);
   // Mirrors `loading` for the IntersectionObserver callback, which otherwise
@@ -299,6 +302,21 @@ export function Feed() {
           >
             Saved · {saved.length}
           </button>
+          {accountsEnabled &&
+            (user ? (
+              <Link
+                href="/account"
+                aria-label="Your account"
+                title={user.email ?? "Your account"}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink text-sm font-semibold text-paper"
+              >
+                {userInitial(user)}
+              </Link>
+            ) : (
+              <Link href="/login" className="shrink-0 rounded-full border border-line px-4 py-1.5 text-sm font-medium">
+                Log in
+              </Link>
+            ))}
         </div>
 
         <div className="mx-auto mt-2 flex max-w-3xl items-center gap-2">

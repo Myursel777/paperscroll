@@ -1,8 +1,9 @@
 // A stand-in for Supabase, for developing and testing the account features
 // without a project. Everything lives in memory and is gone when it stops.
 //
-//   npx tsx scripts/fake-supabase.ts          listens on http://localhost:54321
-//   PORT=55555 npx tsx scripts/fake-supabase.ts
+//   npx tsx scripts/fake-supabase.ts                       http://localhost:54321
+//   FAKE_SUPABASE_PORT=55555 npx tsx scripts/fake-supabase.ts
+// (Not PORT: that variable selects the app's port in the test setup.)
 //
 // It speaks the parts of the Supabase API the app uses:
 //   Auth:  sign up (with email confirmation), password login, refresh, user,
@@ -24,7 +25,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { randomUUID } from "node:crypto";
 
-const PORT = Number(process.env.PORT ?? 54321);
+const PORT = Number(process.env.FAKE_SUPABASE_PORT ?? 54321);
 const TOKEN_TTL_S = 3600;
 
 type User = {

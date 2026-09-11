@@ -11,6 +11,25 @@ account on first login. The account system switches on only when the two
 public Supabase values are present in `.env.local`, so the site keeps working
 with zero setup.
 
+- **Sign-in pages.** Sign up (name, email, password; shows a "check your
+  inbox" state), log in (with a `next` return address and plain error
+  messages), forgot password, reset password (reached from the emailed link,
+  explains an expired link), verify email, and `/auth/callback`, where the
+  emailed links land: it exchanges the one-time code for a session and sends
+  new users to onboarding or returning users where they were going. A small
+  form kit in `components/auth/ui.tsx` keeps the pages consistent; a
+  `useUser` hook gives client components the signed-in user; the feed header
+  shows "Log in" or the account initial, and nothing at all when accounts
+  are off.
+- **Tests with the fake.** `npm run build:test` builds into `.next-test` with
+  the fake Supabase address baked in; Playwright starts the fake and the app
+  itself. `tests/e2e/auth.spec.ts` covers sign-up and confirmation, wrong
+  password, unconfirmed email, protected-page redirect and return, the full
+  password reset, and an expired reset link. Two lessons: the fake must not
+  read `PORT` (that variable picks the app's port, so the fake had started on
+  it and the tests waited on the wrong port), and Next's route announcer also
+  has the alert role, so form messages are located inside `main`.
+
 - **Foundations.** `lib/supabase/` holds a browser client, a server client
   (cookies), and the on/off switch; `middleware.ts` refreshes the session on
   every page request and redirects signed-out visitors away from account

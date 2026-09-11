@@ -10,7 +10,10 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "build:test": "node scripts/with-test-env.mjs next build",
+    "start:test": "node scripts/with-test-env.mjs next start",
+    "fake-supabase": "tsx scripts/fake-supabase.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

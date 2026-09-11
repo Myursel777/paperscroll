@@ -11,6 +11,18 @@ account on first login. The account system switches on only when the two
 public Supabase values are present in `.env.local`, so the site keeps working
 with zero setup.
 
+- **Saved papers follow the account.** `useSaved` keeps localStorage as the
+  always-on browser copy. When a user is signed in it pulls the account's
+  list; the first time in a browser the two are merged and browser-only
+  papers are uploaded, afterwards the account leads so removals made
+  elsewhere show up. Each save or removal is applied locally at once and
+  queued in localStorage for the account; the queue is flushed in order and
+  a failed write stays queued for the next sync instead of being lost. Pure
+  merge logic in `lib/saved/merge.ts` (unit tested), Supabase calls in
+  `lib/saved/remote.ts`. End-to-end: a paper saved logged out survives a
+  wiped browser after login, and saves and removals while signed in show up
+  in a fresh browser state.
+
 - **Sign-in pages.** Sign up (name, email, password; shows a "check your
   inbox" state), log in (with a `next` return address and plain error
   messages), forgot password, reset password (reached from the emailed link,

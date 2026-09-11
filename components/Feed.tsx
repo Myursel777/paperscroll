@@ -12,6 +12,7 @@ import { recommend, similarTo } from "@/lib/recommender";
 import { PaperCard } from "@/components/PaperCard";
 import { CategoryBar } from "@/components/CategoryBar";
 import { SavedDrawer } from "@/components/SavedDrawer";
+import { SkeletonCard } from "@/components/SkeletonCard";
 
 const PER_PAGE = 12;
 type Mode = "field" | "foryou" | "similar";
@@ -24,12 +25,16 @@ const STALE_NOTICE =
 // returns whatever it cached before, flagged as stale.
 async function fetchField(field: string, q = "", start = 0, max = PER_PAGE) {
   const params = new URLSearchParams({ field, q, start: String(start), max: String(max) });
-  const res = await fetch(`/api/papers?${params}`);
-  const data = await res.json();
-  return {
-    papers: (data.papers ?? []) as Paper[],
-    error: (data.error as string | undefined) ?? (data.stale ? STALE_NOTICE : undefined),
-  };
+  try {
+    const res = await fetch(`/api/papers?${params}`);
+    const data = await res.json();
+    return {
+      papers: (data.papers ?? []) as Paper[],
+      error: (data.error as string | undefined) ?? (data.stale ? STALE_NOTICE : undefined),
+    };
+  } catch {
+    return { papers: [] as Paper[], error: "Could not reach the server. Check your connection and try again." };
+  }
 }
 
 function dedupe(papers: Paper[]) {
@@ -49,11 +54,13 @@ export function Feed() {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0); // bumped by "Try again"
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const field = fieldById(fieldId);
   const { saved, isSaved, toggle, remove } = useSaved();
   const sentinel = useRef<HTMLDivElement | null>(null);
+  const feedRef = useRef<HTMLDivElement | null>(null);
 
   // Which fields to draw the "For You" candidate pool from: the ones you've
   // saved from most, or a sensible default before you've saved anything.
@@ -124,7 +131,35 @@ export function Feed() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, fieldId, query, seed]);
+  }, [mode, fieldId, query, seed, attempt]);
+
+  // Arrow keys move one card at a time. Native arrow scrolling only moves a
+  // few pixels and the snap pulls it straight back, so we handle it here.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) return;
+      const feed = feedRef.current;
+      if (!feed) return;
+
+      const tops = Array.from(feed.querySelectorAll<HTMLElement>(":scope > .snap-card")).map(
+        (c) => c.offsetTop,
+      );
+      const here = feed.scrollTop;
+      const next =
+        e.key === "ArrowDown"
+          ? tops.find((t) => t > here + 1)
+          : tops.reverse().find((t) => t < here - 1);
+      if (next === undefined) return;
+
+      e.preventDefault();
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      feed.scrollTo({ top: next, behavior: reduceMotion ? "auto" : "smooth" });
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // Infinite scroll (field mode only).
   useEffect(() => {
@@ -223,7 +258,7 @@ export function Feed() {
         )}
       </div>
 
-      <div className="feed pt-[112px]">
+      <div ref={feedRef} className="feed pt-[112px]">
         {papers.map((p, i) => {
           const f = cardField(p);
           return (
@@ -240,12 +275,27 @@ export function Feed() {
           );
         })}
 
+        {loading &&
+          Array.from({ length: papers.length ? 1 : 3 }, (_, i) => (
+            <SkeletonCard key={`skeleton-${i}`} />
+          ))}
+
         <div
           className={`snap-card ${papers.length ? "" : "snap-off"} flex items-center justify-center px-6`}
         >
           <div ref={sentinel} className="max-w-sm text-center text-sm text-muted">
             {loading && "Loading papers…"}
-            {!loading && error && <span className="text-ink">{error}</span>}
+            {!loading && error && (
+              <div className="flex flex-col items-center gap-3">
+                <span className="text-ink">{error}</span>
+                <button
+                  onClick={() => setAttempt((a) => a + 1)}
+                  className="rounded-full border border-line px-4 py-1.5 font-medium text-ink"
+                >
+                  Try again
+                </button>
+              </div>
+            )}
             {!loading && !error && papers.length === 0 && (
               <span>Nothing here yet. Try another field or search.</span>
             )}

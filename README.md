@@ -31,6 +31,9 @@ Deploy free on Vercel: push to GitHub → "Import Project" → done. No env vars
 - **Save for later** (stored in the browser via `localStorage`, no login).
 - **Read** (arXiv abstract page) and **PDF** links on every card.
 - **Infinite scroll** — new pages load automatically as you near the end.
+- **Keyboard**: the up and down arrow keys move one paper at a time. Smooth
+  scrolling and the loading animation are switched off when the system asks
+  for reduced motion.
 
 ## Recommender
 
@@ -73,7 +76,8 @@ add an entry to `FIELDS` in `lib/arxiv.ts` with its arXiv categories
 Live arXiv feed, fields, search, save, infinite scroll. Deployable.
 
 ### Phase 2 — Polish & PWA
-- Loading skeletons, nicer empty/error states, keyboard arrows for next/prev.
+- ✅ Loading skeletons, a "Try again" action on errors, arrow keys for
+  next/prev, reduced-motion aware.
 - Make it an installable **PWA** (manifest + service worker) so phones can
   "Add to Home Screen" and it feels like an app. (ArxivTok does exactly this —
   worth copying its `manifest.json` / `sw.js` approach.)

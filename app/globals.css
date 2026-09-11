@@ -30,10 +30,10 @@ body {
   scroll-snap-align: start;
   scroll-snap-stop: always;
 }
-/* While a feed is loading, the status card at the end is the only card. If it
-   were a snap target, Chrome would re-snap to it once the papers are inserted
-   above it, jumping to the end of the feed and triggering infinite scroll for
-   page after page. */
+/* While a feed is loading, only skeleton cards and the status card exist. If
+   any of them were a snap target, Chrome would re-snap to the end of the feed
+   once the papers are inserted, which triggers infinite scroll for page after
+   page. So nothing snaps until there are papers. */
 .snap-card.snap-off {
   scroll-snap-align: none;
 }

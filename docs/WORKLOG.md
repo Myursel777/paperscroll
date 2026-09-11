@@ -5,6 +5,11 @@ so the git history can be read without re-deriving the reasoning.
 
 ## 2026-09-11: Phase 1 started
 
+- **Dependency pin.** `resolve` 1.22.12, a transitive dependency of Tailwind
+  and ESLint, ships stray files from its maintainer's working folder inside
+  the package. The 1.x line is pinned to 1.22.11 through `overrides` in
+  `package.json`; the two versions are otherwise identical.
+
 - **Deploy preparation.** `lib/site.ts` falls back to Vercel's own URL
   variable when `NEXT_PUBLIC_SITE_URL` is not set, so a fresh import on
   Vercel needs no configuration. The README roadmap now summarises the

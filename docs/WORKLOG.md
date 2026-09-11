@@ -3,6 +3,12 @@
 Newest entry first. Each entry says what changed, why, and how it was checked,
 so the git history can be read without re-deriving the reasoning.
 
+## 2026-09-11: Phase 2 started (topic tagging)
+
+- Repository pushed to GitHub (Myursel777/paperscroll). The first CI run
+  passed in about two minutes, including the end-to-end suite in Firefox,
+  which cannot start on the development machine.
+
 ## 2026-09-11: Phase 1 started
 
 - **Dependency pin.** `resolve` 1.22.12, a transitive dependency of Tailwind

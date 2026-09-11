@@ -28,7 +28,7 @@ Everything here is free to run except the app store fees in Phase 6.
 - [x] Accessibility: focus order, ARIA labels, Escape closes the drawer, visible focus rings, contrast
 - [x] Dark mode following the system setting (same layout and accents)
 - [x] Fonts self-hosted through Next; Core Web Vitals measured green on a throttled mobile profile (Lighthouse score to confirm on the deployed URL)
-- [ ] Cross-browser pass: the end-to-end test runs in Chromium, Firefox, and WebKit
+- [x] Cross-browser pass: the end-to-end test runs in Chromium, Firefox, and WebKit (Firefox in CI)
 - [ ] Deploy on Vercel (free Hobby plan) from a GitHub repository
 
 ## Phase 2: topic tagging
@@ -36,7 +36,7 @@ Everything here is free to run except the app store fees in Phase 6.
 Goal: every paper carries up to three tags from one fixed taxonomy, computed
 on the server, never in the browser while scrolling.
 
-- [ ] Taxonomy of about forty topics in `lib/topics.ts`: id, label, parent field, description, implying arXiv categories
+- [ ] Taxonomy of about fifty topics in `lib/topics.ts`: id, label, parent field, description, hinting arXiv categories, keyword patterns, and the arXiv search each topic maps to
 - [ ] Tagger v1 (rules): arXiv categories plus keyword patterns. Target: 9 of 10 sampled papers look right
 - [ ] Tagger v2 (embeddings): cosine between abstract and topic descriptions, threshold, max three tags
 - [ ] Tags stored with the paper (route cache first, `paper_tags` table after Phase 3)

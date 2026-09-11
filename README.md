@@ -123,7 +123,7 @@ The portfolio centrepiece — and the part your AI degree makes you qualified fo
 - ✅ Frontend calls the neural service when `NEXT_PUBLIC_RECOMMENDER_URL` is
   set and falls back to TF-IDF when it is not reachable.
 - ▢ Next: cache paper embeddings in **pgvector** (Supabase) for fast similarity
-  search, and write up the approach — that write-up *is* the portfolio value.
+  search, and write up the approach: that write-up *is* the portfolio value.
 
 ### Phase 6 — Mobile app
 Reuse the data layer in **React Native (Expo)**. `lib/arxiv.ts` and the fetch

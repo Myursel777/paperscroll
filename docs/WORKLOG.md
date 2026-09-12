@@ -102,7 +102,31 @@ about them, where candidate papers come from, and how they are ordered.
   feed of 273 papers: every one parsed with a title, abstract, authors, and
   categories, and 215 of them tagged, the tagger's usual rate.
 
-- **How it was checked.** 89 unit tests, 81 end-to-end tests in Chromium,
+- **One paper, two ids.** The first successful run stored 469 papers, and the
+  nearest-neighbour check on the real database immediately showed the same
+  paper twice. The two sources disagreed about its name: the search API calls
+  it `http://arxiv.org/abs/2609.11878v1` and a feed item's link calls it
+  `https://arxiv.org/abs/2609.11878`, without the version and over https. That
+  matters because the abstract URL is the key the whole app uses for a paper,
+  in saved papers, in reading events, and in the store, so a reader could have
+  saved the same paper twice. The feed does carry the versioned identifier, in
+  the guid and again at the head of the description, so the parser now reads
+  it from there and rebuilds the id in exactly the shape the API uses. Checked
+  against the live feed: all 273 papers came back with versioned ids over
+  http and PDF links over https, as arXiv itself returns them. A known limit
+  that remains: a paper revised weeks later arrives as a new version and so a
+  new id, which the live feed never showed because it only ever serves the
+  current one.
+
+- **The runner's first real night.** Throttled on the opening request, waited,
+  hit two HTTP 503s from an overloaded arXiv, waited four times in all, and
+  came away with 196 papers from the search API before a 429 with no patience
+  left. It then topped up from the feeds for 273 more: 469 papers stored, all
+  469 with an embedding, 386 carrying at least one topic. Eleven minutes, and
+  the vector search on the real database returns sensible neighbours. The
+  actions were also moved off the Node 20 runtime GitHub is retiring.
+
+- **How it was checked.** 93 unit tests, 81 end-to-end tests in Chromium,
   WebKit, and mobile Chrome (Firefox in CI, as before). The nightly job was
   rehearsed end to end against the stand-in Supabase with a real arXiv fetch
   and stand-in vectors: 26 papers stored, the embedding column correctly

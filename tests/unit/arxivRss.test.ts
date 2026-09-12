@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { abstractFromDescription, parseRssFeed, rssUrl } from "@/lib/arxivRss";
+import { abstractFromDescription, parseRssFeed, rssUrl, versionedId } from "@/lib/arxivRss";
 
 // A feed shaped like the ones arXiv serves at rss.arxiv.org: an announcement
 // of new papers, one with two categories and a revision ("replace") item.
@@ -12,6 +12,7 @@ const FEED = `<?xml version='1.0' encoding='UTF-8'?>
       <link>http://arxiv.org/abs/2609.01234</link>
       <description>arXiv:2609.01234v1 Announce Type: new
 Abstract: We study how sparse mixture-of-experts models scale with compute.</description>
+      <guid isPermaLink="false">oai:arXiv.org:2609.01234v1</guid>
       <dc:creator>Ada Lovelace, Alan Turing</dc:creator>
       <category>cs.LG</category>
       <category>cs.AI</category>
@@ -23,6 +24,7 @@ Abstract: We study how sparse mixture-of-experts models scale with compute.</des
       <link>http://arxiv.org/abs/2608.09876</link>
       <description>arXiv:2608.09876v2 Announce Type: replace
 Abstract: Revised comparison of optimisers.</description>
+      <guid isPermaLink="false">oai:arXiv.org:2608.09876v2</guid>
       <dc:creator>Grace Hopper</dc:creator>
       <category>cs.LG</category>
       <pubDate>Fri, 11 Sep 2026 00:00:00 -0400</pubDate>
@@ -72,9 +74,11 @@ describe("parseRssFeed", () => {
     expect(papers).toHaveLength(2);
   });
 
-  it("uses the abstract page as the id, over https", () => {
-    expect(papers[0].id).toBe("https://arxiv.org/abs/2609.01234");
-    expect(papers[0].pdfLink).toBe("https://arxiv.org/pdf/2609.01234");
+  it("builds the id in the search API's shape, with the version", () => {
+    // The feed's own link drops the version and uses https, so taking it at
+    // face value stored the same paper twice, once per source.
+    expect(papers[0].id).toBe("http://arxiv.org/abs/2609.01234v1");
+    expect(papers[0].pdfLink).toBe("https://arxiv.org/pdf/2609.01234v1");
   });
 
   it("reads the title, abstract, and authors", () => {
@@ -96,8 +100,8 @@ describe("parseRssFeed", () => {
     expect(papers[0].tags).toEqual([]);
   });
 
-  it("keeps revisions, which are still worth showing", () => {
-    expect(papers[1].id).toBe("https://arxiv.org/abs/2608.09876");
+  it("keeps revisions, which are still worth showing, at their own version", () => {
+    expect(papers[1].id).toBe("http://arxiv.org/abs/2608.09876v2");
   });
 
   it("returns nothing for a feed with no items, as at weekends", () => {
@@ -107,8 +111,30 @@ describe("parseRssFeed", () => {
   it("handles a single item, which the XML parser gives as an object", () => {
     const one = parseRssFeed(ONE_ITEM, "q-bio.NC");
     expect(one).toHaveLength(1);
+    // No guid and no identifier in the description: the link is all there is.
+    expect(one[0].id).toBe("http://arxiv.org/abs/2609.00001");
     expect(one[0].title).toBe("Only Paper");
     expect(one[0].summary).toBe("Just the abstract, with no header at all.");
     expect(one[0].primaryCategory).toBe("q-bio.NC");
+  });
+});
+
+describe("versionedId", () => {
+  it("prefers the guid, which always carries the version", () => {
+    expect(versionedId({ guid: "oai:arXiv.org:2609.01234v3", link: "https://arxiv.org/abs/2609.01234" })).toBe(
+      "2609.01234v3",
+    );
+  });
+
+  it("falls back to the identifier at the head of the description", () => {
+    expect(versionedId({ description: "arXiv:2609.05555v2 Announce Type: replace" })).toBe("2609.05555v2");
+  });
+
+  it("falls back to the link when nothing carries the identifier", () => {
+    expect(versionedId({ link: "https://arxiv.org/abs/2609.00001" })).toBe("2609.00001");
+  });
+
+  it("is null when there is nothing to read", () => {
+    expect(versionedId({})).toBeNull();
   });
 });

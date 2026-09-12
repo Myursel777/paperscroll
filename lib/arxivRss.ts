@@ -29,6 +29,29 @@ const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: "" 
 const clean = (s: unknown) => String(s ?? "").replace(/\s+/g, " ").trim();
 
 /**
+ * The versioned arXiv identifier, for example "2609.01234v1".
+ *
+ * This matters more than it looks. The app keys a paper by its abstract URL
+ * everywhere: saved papers, reading events, the store. The search API gives
+ * that as `http://arxiv.org/abs/2609.01234v1`, while a feed item's `link` is
+ * `https://arxiv.org/abs/2609.01234`, with no version and a different scheme.
+ * Taking the link at face value stored the same paper twice, once per source.
+ * The identifier with its version is in the guid and again at the start of
+ * the description, so it is read from there and the id is rebuilt in exactly
+ * the shape the API uses.
+ */
+export function versionedId(item: { guid?: unknown; description?: unknown; link?: unknown }): string | null {
+  const guid = clean(item.guid).match(/oai:arXiv\.org:(\S+)/i);
+  if (guid) return guid[1];
+  const described = String(item.description ?? "").match(/arXiv:(\S+?)\s/i);
+  if (described) return described[1];
+  // No identifier anywhere: fall back to whatever the link points at, which
+  // leaves the version off but is better than dropping the paper.
+  const link = clean(item.link).match(/\/abs\/(\S+)$/);
+  return link ? link[1] : null;
+}
+
+/**
  * The abstract out of an item's description. arXiv prefixes it with the
  * identifier and the announcement type, on their own lines:
  *
@@ -65,10 +88,11 @@ export function parseRssFeed(xml: string, primary: string): Paper[] {
   return items
     .filter(Boolean)
     .map((item: Record<string, unknown>): Paper => {
-      // The link is the abstract page, which is the key the app uses for a
-      // paper everywhere else. The feed serves it over http; the app's own
-      // ids are https, so it is normalised here.
-      const id = clean(item.link).replace(/^http:/, "https:");
+      // Rebuilt in the search API's shape so a paper has one id whichever
+      // source it came from: abstract pages over http, PDFs over https,
+      // which is what arXiv itself returns.
+      const ref = versionedId(item);
+      const id = ref ? `http://arxiv.org/abs/${ref}` : "";
       const categories = String(
         Array.isArray(item.category) ? item.category.join(",") : (item.category ?? primary),
       )
@@ -87,7 +111,7 @@ export function parseRssFeed(xml: string, primary: string): Paper[] {
           .filter(Boolean),
         published: publishedFrom(item.pubDate),
         // The feed does not carry a PDF link; it follows from the identifier.
-        pdfLink: id ? id.replace("/abs/", "/pdf/") : null,
+        pdfLink: ref ? `https://arxiv.org/pdf/${ref}` : null,
         primaryCategory,
         // Primary first, no duplicates, as lib/arxiv.ts does for the API.
         categories: Array.from(new Set([primaryCategory, ...categories])),

@@ -78,8 +78,8 @@ function centroid(vecs: Vec[]): Vec {
   return sum;
 }
 
-export function recencyScore(iso: string): number {
-  const days = (Date.now() - new Date(iso).getTime()) / 86_400_000;
+export function recencyScore(iso: string, now = Date.now()): number {
+  const days = (now - new Date(iso).getTime()) / 86_400_000;
   if (!isFinite(days)) return 0;
   return Math.exp(-days / 30); // ~1 today, decays over a month
 }

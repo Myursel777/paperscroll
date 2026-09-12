@@ -12,6 +12,8 @@ export type Profile = {
   default_field: string;
   interests: string[]; // topic ids from lib/topics.ts
   onboarded: boolean;
+  /** Topic sliders for For You: topic id to 0..2, 1 is neutral (lib/foryou/profile.ts). */
+  topic_boosts: Record<string, number>;
 };
 
 export function useProfile() {
@@ -32,7 +34,7 @@ export function useProfile() {
     setLoading(true);
     supabase
       .from("profiles")
-      .select("id, display_name, default_field, interests, onboarded")
+      .select("id, display_name, default_field, interests, onboarded, topic_boosts")
       .eq("id", userId)
       .single()
       .then(({ data, error: err }) => {
@@ -55,7 +57,7 @@ export function useProfile() {
         .from("profiles")
         .update(patch)
         .eq("id", userId)
-        .select("id, display_name, default_field, interests, onboarded")
+        .select("id, display_name, default_field, interests, onboarded, topic_boosts")
         .single();
       if (err) throw err;
       if (patch.display_name !== undefined) {

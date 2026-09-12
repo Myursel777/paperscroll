@@ -9,11 +9,15 @@
 //   Auth:  sign up (with email confirmation), password login, refresh, user,
 //          update user (password, metadata), logout, password recovery, the
 //          verify link, and the PKCE code exchange the callback route uses.
-//   REST:  the profiles, collections, and saved_papers tables with the
-//          PostgREST filters the app sends (select, eq, in, order, limit,
-//          upsert with on_conflict, single-object responses), the
-//          delete_own_account RPC, and row-level security: a request only
-//          ever sees rows that belong to the bearer token's user.
+//   REST:  the profiles, collections, saved_papers, and events tables with
+//          the PostgREST filters the app sends (select, eq, in, gte, ov,
+//          order, limit, upsert with on_conflict, single-object responses),
+//          the delete_own_account RPC, and row-level security: a request
+//          only ever sees rows that belong to the bearer token's user. The
+//          papers table (the store the nightly job fills) is public to read
+//          and written only by the bearer token "fake-service-key", which
+//          plays the service role; rpc/nearest_papers ranks stored papers by
+//          cosine similarity to a query vector.
 //
 // Emails are not sent. Every "email" (confirmation, recovery) is recorded and
 // can be read at GET /_dev/emails, which is how the end-to-end tests click the
@@ -45,16 +49,34 @@ const state = {
   refreshTokens: new Map<string, string>(), // refresh token -> user id
   codes: new Map<string, { userId: string; type: "signup" | "recovery" }>(), // PKCE auth codes
   verifyTokens: new Map<string, { userId: string; type: "signup" | "recovery"; redirectTo: string }>(),
-  tables: { profiles: [] as Row[], collections: [] as Row[], saved_papers: [] as Row[] },
+  tables: {
+    profiles: [] as Row[],
+    collections: [] as Row[],
+    saved_papers: [] as Row[],
+    events: [] as Row[],
+    papers: [] as Row[],
+  },
   emails: [] as Email[],
 };
 
-const OWNER_COLUMN: Record<string, string> = { profiles: "id", collections: "user_id", saved_papers: "user_id" };
+// A table with a null owner column is public to read and writable only by
+// the service role (the papers store the nightly job fills).
+const OWNER_COLUMN: Record<string, string | null> = {
+  profiles: "id",
+  collections: "user_id",
+  saved_papers: "user_id",
+  events: "user_id",
+  papers: null,
+};
 const PRIMARY_KEY: Record<string, string[]> = {
   profiles: ["id"],
   collections: ["id"],
   saved_papers: ["user_id", "paper_id"],
+  events: ["id"],
+  papers: ["id"],
 };
+const SERVICE_KEY = "fake-service-key";
+let nextEventId = 1;
 
 // ---------------------------------------------------------------------------
 // helpers
@@ -132,6 +154,7 @@ function createProfile(user: User) {
     default_field: "ai-ml",
     interests: [],
     onboarded: false,
+    topic_boosts: {},
     created_at: now(),
     updated_at: now(),
   });
@@ -173,7 +196,7 @@ function applyFilters(rows: Row[], params: URLSearchParams): Row[] {
   let out = rows;
   for (const [key, raw] of params) {
     if (["select", "order", "limit", "offset", "on_conflict", "columns"].includes(key)) continue;
-    const m = raw.match(/^(eq|neq|in|is|ilike|gte|lte|gt|lt)\.([\s\S]*)$/);
+    const m = raw.match(/^(eq|neq|in|not\.is|is|ilike|gte|lte|gt|lt|ov)\.([\s\S]*)$/);
     if (!m) continue;
     const [, op, value] = m;
     out = out.filter((r) => {
@@ -182,6 +205,12 @@ function applyFilters(rows: Row[], params: URLSearchParams): Row[] {
         case "eq": return String(v) === value;
         case "neq": return String(v) !== value;
         case "is": return value === "null" ? v === null || v === undefined : String(v) === value;
+        case "not.is": return value === "null" ? !(v === null || v === undefined) : String(v) !== value;
+        // Array overlap: tags=ov.{a,b} keeps rows whose array shares a value.
+        case "ov": {
+          const wanted = value.replace(/^\{|\}$/g, "").split(",").map((x) => x.replace(/^"|"$/g, ""));
+          return Array.isArray(v) && v.some((x) => wanted.includes(String(x)));
+        }
         case "in": return value.replace(/^\(|\)$/g, "").split(",").map((s) => s.replace(/^"|"$/g, "")).includes(String(v));
         case "ilike": return new RegExp("^" + value.replace(/%/g, ".*") + "$", "i").test(String(v));
         case "gte": return String(v) >= value;
@@ -226,25 +255,71 @@ async function handleRest(req: IncomingMessage, res: ServerResponse, url: URL) {
     return send(res, 204);
   }
 
+  if (table === "rpc/nearest_papers") return handleNearest(req, res);
+
   if (!(table in state.tables)) return send(res, 404, { message: `table ${table} not found` });
-  const user = userFromRequest(req);
-  if (!user) return send(res, 401, { message: "JWT required" }); // RLS: anonymous sees nothing
   const rows = state.tables[table as keyof typeof state.tables];
   const owner = OWNER_COLUMN[table];
-  const mine = rows.filter((r) => r[owner] === user.id);
   const prefer = String(req.headers.prefer ?? "");
+  const bearer = (req.headers.authorization ?? "").replace(/^Bearer\s+/i, "");
+
+  // The service role sees and writes every row of every table, as it does in
+  // a real project, where it bypasses row-level security. Only the nightly
+  // job uses it; the app never holds this key.
+  if (bearer === SERVICE_KEY) {
+    if (req.method === "GET") return rowsResponse(req, res, applyFilters(rows, url.searchParams).map(selected(url)));
+    return writeRows(req, res, url, table, rows, rows, null, prefer);
+  }
+
+  // Public table: anybody may read it, only the service role may write it.
+  if (owner === null) {
+    if (req.method === "GET") {
+      return rowsResponse(req, res, applyFilters(rows, url.searchParams).map(selected(url)));
+    }
+    return send(res, 401, { message: "service role required" });
+  }
+
+  const user = userFromRequest(req);
+  if (!user) return send(res, 401, { message: "JWT required" }); // RLS: anonymous sees nothing
+  const mine = rows.filter((r) => r[owner] === user.id);
 
   if (req.method === "GET") return rowsResponse(req, res, applyFilters(mine, url.searchParams));
+  return writeRows(req, res, url, table, rows, mine, { owner, userId: user.id }, prefer);
+}
+
+// PostgREST returns a column only when the select lists it. The app relies on
+// this for `embedding`, which it asks for separately and never with the rest.
+function selected(url: URL) {
+  const select = url.searchParams.get("select") ?? "*";
+  if (select === "*" || select.includes("embedding")) return (r: Row) => r;
+  return (r: Row) => Object.fromEntries(Object.entries(r).filter(([k]) => k !== "embedding"));
+}
+
+async function writeRows(
+  req: IncomingMessage,
+  res: ServerResponse,
+  url: URL,
+  table: string,
+  rows: Row[],
+  visible: Row[],
+  scope: { owner: string; userId: string } | null,
+  prefer: string,
+) {
 
   if (req.method === "POST") {
     const body = await readJson(req);
     const incoming: Row[] = Array.isArray(body) ? body : [body];
     const written: Row[] = [];
     for (const r of incoming) {
-      const row: Row = { ...r, [owner]: user.id };
+      const row: Row = scope ? { ...r, [scope.owner]: scope.userId } : { ...r };
       if (table === "collections" && !row.id) row.id = randomUUID();
       if (table !== "profiles" && !row.created_at && table === "collections") row.created_at = now();
       if (table === "saved_papers" && !row.saved_at) row.saved_at = now();
+      if (table === "events") {
+        row.id = nextEventId++;
+        row.created_at ??= now();
+      }
+      if (table === "papers") row.fetched_at ??= now();
       const keys = PRIMARY_KEY[table];
       const existingIndex = rows.findIndex((x) => keys.every((k) => x[k] === row[k]));
       if (existingIndex >= 0) {
@@ -262,14 +337,14 @@ async function handleRest(req: IncomingMessage, res: ServerResponse, url: URL) {
 
   if (req.method === "PATCH") {
     const patch = await readJson(req);
-    const targets = applyFilters(mine, url.searchParams);
+    const targets = applyFilters(visible, url.searchParams);
     for (const t of targets) Object.assign(t, patch, table === "profiles" ? { updated_at: now() } : {});
     if (!prefer.includes("return=representation")) return send(res, 204);
     return rowsResponse(req, res, targets);
   }
 
   if (req.method === "DELETE") {
-    const targets = new Set(applyFilters(mine, url.searchParams));
+    const targets = new Set(applyFilters(visible, url.searchParams));
     const remaining = rows.filter((r) => !targets.has(r));
     rows.length = 0;
     rows.push(...remaining);
@@ -280,12 +355,35 @@ async function handleRest(req: IncomingMessage, res: ServerResponse, url: URL) {
   return send(res, 405, { message: "method not allowed" });
 }
 
+// rpc/nearest_papers: cosine similarity between the query vector and every
+// stored embedding, best first. The vectors are unit length, so the dot
+// product is the cosine. Papers without an embedding are skipped, exactly as
+// the SQL function does.
+async function handleNearest(req: IncomingMessage, res: ServerResponse) {
+  const { query, n } = await readJson(req);
+  const q: number[] = Array.isArray(query) ? query.map(Number) : [];
+  const limit = Math.min(Math.max(Number(n ?? 60), 1), 200);
+  const scored = state.tables.papers
+    .filter((p) => Array.isArray(p.embedding) && (p.embedding as number[]).length === q.length)
+    .map((p) => {
+      const e = p.embedding as number[];
+      let dot = 0;
+      for (let i = 0; i < q.length; i++) dot += q[i] * e[i];
+      const { embedding: _drop, ...rest } = p;
+      return { ...rest, similarity: dot };
+    })
+    .sort((a, b) => b.similarity - a.similarity)
+    .slice(0, limit);
+  return send(res, 200, scored);
+}
+
 function deleteUser(userId: string) {
   state.users.delete(userId);
   for (const [k, s] of state.sessions) if (s.userId === userId) state.sessions.delete(k);
   for (const [k, u] of state.refreshTokens) if (u === userId) state.refreshTokens.delete(k);
   for (const table of Object.keys(state.tables) as (keyof typeof state.tables)[]) {
     const owner = OWNER_COLUMN[table];
+    if (owner === null) continue; // the papers store belongs to nobody
     state.tables[table] = state.tables[table].filter((r) => r[owner] !== userId) as never;
   }
 }
@@ -395,12 +493,19 @@ createServer(async (req, res) => {
     if (url.pathname === "/_dev/emails") return send(res, 200, state.emails);
     if (url.pathname === "/_dev/reset") {
       state.users.clear(); state.sessions.clear(); state.refreshTokens.clear(); state.codes.clear(); state.verifyTokens.clear();
-      state.tables.profiles = []; state.tables.collections = []; state.tables.saved_papers = []; state.emails = [];
+      state.tables.profiles = []; state.tables.collections = []; state.tables.saved_papers = [];
+      state.tables.events = []; state.tables.papers = []; state.emails = [];
       return send(res, 204);
     }
     if (url.pathname.startsWith("/auth/v1/")) return await handleAuth(req, res, url);
     if (url.pathname.startsWith("/rest/v1/")) return await handleRest(req, res, url);
-    return send(res, 200, { ok: true, fake: "supabase", users: state.users.size });
+    return send(res, 200, {
+      ok: true,
+      fake: "supabase",
+      users: state.users.size,
+      events: state.tables.events.length,
+      papers: state.tables.papers.length,
+    });
   } catch (err) {
     console.error("[fake-supabase]", err);
     return send(res, 500, { message: String(err) });

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const ITEMS: [string, string][] = [
   ["/account", "Profile"],
   ["/account/settings", "Settings"],
+  ["/account/foryou", "For You"],
   ["/account/security", "Security"],
   ["/account/data", "Your data"],
   ["/saved", "Library"],

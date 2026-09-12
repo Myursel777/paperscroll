@@ -38,9 +38,16 @@ export default function AboutPage() {
           a time, results cached for ten minutes, and a pause whenever arXiv asks for one.
         </li>
         <li>
-          For You ranks papers by how similar they are to the ones you saved, blended with recency.
-          The default engine is a word-based TF-IDF model that runs in your browser. An optional
-          neural model, using sentence embeddings, can take over when it is available.
+          For You blends five things: how close a paper is to the ones you responded to, how well
+          its topics match what you read, how new it is, how many other readers opened it, and
+          whether you have already seen it. Every few cards it deliberately shows something
+          outside your usual topics, and each card says in one line why it is there.
+        </li>
+        <li>
+          Similarity comes from a word-based TF-IDF model that runs in your browser, or from
+          sentence embeddings computed by a nightly job when one is configured. Your reading
+          history stays in your browser unless you have an account, in which case it syncs so the
+          feed follows you between devices.
         </li>
         <li>
           Saved papers live in your browser. With an optional account they also sync across

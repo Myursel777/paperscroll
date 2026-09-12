@@ -35,8 +35,11 @@ export default function PrivacyPage() {
       <p>
         Accounts are optional and run on Supabase, a hosted database service, on its free plan.
         Creating one stores your email address, a hashed password, the name you choose, your
-        settings (default field and interests), your saved papers, and your collections. Nothing
-        is stored that you did not type or save yourself. A login cookie keeps you signed in. You
+        settings (default field and interests), your saved papers, your collections, and your
+        reading history: which papers you were shown, how long each card was on screen, and which
+        you opened, saved, or hid. That history is what the For You feed learns from, it is
+        private to you, and it is deleted after two months. You can clear it at any time on the
+        For You page, and turn topics up or down there by hand. A login cookie keeps you signed in. You
         can download everything as a file or delete the account, with all its data, from the Your
         data page at any time. Emails are sent only to confirm your address and to reset your
         password.

@@ -1,7 +1,9 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import type { Paper } from "@/lib/arxiv";
+import { useCardVisibility } from "@/lib/foryou/useCardVisibility";
+import { reasonText, type Reason } from "@/lib/foryou/rank";
 import { topicById } from "@/lib/topics";
 
 function fmtDate(iso: string) {
@@ -24,6 +26,14 @@ export function PaperCard({
   onToggleSave,
   onMoreLikeThis,
   onTopic,
+  reason,
+  hidden = false,
+  onSeen,
+  onLeft,
+  onExpand,
+  onRead,
+  onNotInterested,
+  onUndoHide,
 }: {
   paper: Paper;
   accent: string;
@@ -34,13 +44,32 @@ export function PaperCard({
   onMoreLikeThis?: () => void;
   /** Called with a topic id when a tag chip is tapped. */
   onTopic?: (topicId: string) => void;
+  /** Why For You picked this paper. Only set in the For You feed. */
+  reason?: Reason;
+  /** The reader marked this paper "not interested"; it stays until the feed is rebuilt. */
+  hidden?: boolean;
+  /** The card came into view. */
+  onSeen?: () => void;
+  /** The card went out of view, with the milliseconds it was showing. */
+  onLeft?: (ms: number) => void;
+  onExpand?: () => void;
+  /** "Read paper" or "PDF" was opened. */
+  onRead?: () => void;
+  onNotInterested?: () => void;
+  onUndoHide?: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const titleId = useId();
+  const article = useRef<HTMLElement>(null);
   const topics = (paper.tags ?? []).map(topicById).filter((t) => t !== undefined);
+
+  // Impressions and dwell time, the two signals For You learns from without
+  // the reader doing anything (see lib/foryou/useCardVisibility.ts).
+  useCardVisibility(article, { onSeen, onLeft });
 
   return (
     <article
+      ref={article}
       aria-labelledby={titleId}
       className="snap-card relative flex flex-col px-6 py-8 sm:px-12 sm:py-10"
       style={{
@@ -66,6 +95,16 @@ export function PaperCard({
           below therefore sit in the same place on every card. */}
       <div className="mx-auto flex min-h-0 w-full max-w-2xl flex-1 flex-col overflow-y-auto py-6 [scrollbar-width:thin]">
        <div className="my-auto">
+        {/* Why this paper is here. Set in the For You feed only. */}
+        {reason && (
+          <p className="mb-3 flex items-center gap-1.5 text-xs font-medium text-muted">
+            <span aria-hidden="true" style={{ color: accent }}>
+              ✦
+            </span>
+            {reasonText(reason)}
+          </p>
+        )}
+
         <h2 id={titleId} className="font-display text-3xl font-semibold leading-tight sm:text-5xl">
           {paper.title}
         </h2>
@@ -104,7 +143,10 @@ export function PaperCard({
 
         {paper.summary.length > 280 && (
           <button
-            onClick={() => setExpanded((v) => !v)}
+            onClick={() => {
+              if (!expanded) onExpand?.();
+              setExpanded((v) => !v);
+            }}
             className="mt-2 text-sm font-medium underline underline-offset-4"
             style={{ color: accent }}
           >
@@ -115,47 +157,75 @@ export function PaperCard({
       </div>
 
       {/* Bottom: actions, pinned */}
-      <footer className="mx-auto flex w-full max-w-2xl shrink-0 items-center gap-3">
-        <a
-          href={paper.id}
-          target="_blank"
-          rel="noreferrer"
-          className="flex-1 rounded-full px-5 py-3 text-center text-sm font-semibold text-onAccent transition active:scale-95"
-          style={{ background: accent }}
-        >
-          Read paper
-        </a>
-
-        {paper.pdfLink && (
+      <footer className="mx-auto w-full max-w-2xl shrink-0">
+        <div className="flex items-center gap-3">
           <a
-            href={paper.pdfLink}
+            href={paper.id}
             target="_blank"
             rel="noreferrer"
-            download
-            className="rounded-full border border-line bg-paper px-5 py-3 text-sm font-semibold transition active:scale-95"
-            aria-label="Open PDF"
+            onClick={onRead}
+            className="flex-1 rounded-full px-5 py-3 text-center text-sm font-semibold text-onAccent transition active:scale-95"
+            style={{ background: accent }}
           >
-            PDF
+            Read paper
           </a>
-        )}
 
-        <button
-          onClick={onToggleSave}
-          aria-pressed={saved}
-          className="rounded-full border border-line bg-paper px-5 py-3 text-sm font-semibold transition active:scale-95"
-          style={saved ? { borderColor: accent, color: accent } : undefined}
-        >
-          {saved ? "Saved" : "Save"}
-        </button>
+          {paper.pdfLink && (
+            <a
+              href={paper.pdfLink}
+              target="_blank"
+              rel="noreferrer"
+              download
+              onClick={onRead}
+              className="rounded-full border border-line bg-paper px-5 py-3 text-sm font-semibold transition active:scale-95"
+              aria-label="Open PDF"
+            >
+              PDF
+            </a>
+          )}
 
-        {onMoreLikeThis && (
           <button
-            onClick={onMoreLikeThis}
+            onClick={onToggleSave}
+            aria-pressed={saved}
             className="rounded-full border border-line bg-paper px-5 py-3 text-sm font-semibold transition active:scale-95"
-            aria-label="Find similar papers"
+            style={saved ? { borderColor: accent, color: accent } : undefined}
           >
-            Similar
+            {saved ? "Saved" : "Save"}
           </button>
+
+          {onMoreLikeThis && (
+            <button
+              onClick={onMoreLikeThis}
+              className="rounded-full border border-line bg-paper px-5 py-3 text-sm font-semibold transition active:scale-95"
+              aria-label="Find similar papers"
+            >
+              Similar
+            </button>
+          )}
+        </div>
+
+        {/* "Not interested" teaches For You what to stop showing. The card
+            stays where it is, because removing it would move the page under
+            the reader's thumb, and says so with an undo. */}
+        {(onNotInterested || hidden) && (
+          <p className="mt-3 text-xs text-muted">
+            {hidden ? (
+              <>
+                <span>Hidden from For You.</span>{" "}
+                <button onClick={onUndoHide} className="font-medium underline underline-offset-2 hover:text-ink">
+                  Undo
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={onNotInterested}
+                aria-label={`Not interested in ${paper.title}`}
+                className="underline underline-offset-2 hover:text-ink"
+              >
+                Not interested
+              </button>
+            )}
+          </p>
         )}
       </footer>
     </article>

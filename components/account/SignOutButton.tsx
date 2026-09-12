@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
+import { clearLocalReading } from "@/lib/foryou/useReading";
 import { clearLocalSaved } from "@/lib/useSaved";
 
 // Signs out of this browser. The browser's copy of the saved papers is
@@ -18,6 +19,7 @@ export function SignOutButton({ everywhere = false, className = "" }: { everywhe
     setBusy(true);
     await supabase.auth.signOut({ scope: everywhere ? "global" : "local" });
     clearLocalSaved();
+    clearLocalReading();
     router.push("/");
     router.refresh();
   }

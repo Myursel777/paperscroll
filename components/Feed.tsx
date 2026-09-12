@@ -12,9 +12,13 @@ import { topicById, topicsForField } from "@/lib/topics";
 import { useUser, userInitial } from "@/lib/auth/useUser";
 import { useProfile } from "@/lib/profile";
 import { accountsEnabled } from "@/lib/supabase/config";
+import { getSupabaseBrowser } from "@/lib/supabase/client";
 import { useSaved } from "@/lib/useSaved";
 import { recommend, similarTo } from "@/lib/recommender";
 import { rankNeural } from "@/lib/neuralRecommender";
+import { useReading } from "@/lib/foryou/useReading";
+import { liveCandidates, storeAvailable, storeCandidates } from "@/lib/foryou/candidates";
+import { rankForYou, type Candidate, type Reason } from "@/lib/foryou/rank";
 import { PaperCard } from "@/components/PaperCard";
 import { CategoryBar } from "@/components/CategoryBar";
 import { ChipRow } from "@/components/ChipRow";
@@ -72,7 +76,12 @@ export function Feed() {
   const fieldTopics = topicsForField(fieldId);
   const { saved, isSaved, toggle, remove, signedIn, syncing } = useSaved();
   const { user } = useUser();
-  const { profile } = useProfile();
+  const { profile, update: updateProfile } = useProfile();
+  // Reading history and the interest profile. This is what For You v2 ranks
+  // with; it works signed out too, from the browser's own history.
+  const reading = useReading({ account: profile, updateAccount: updateProfile });
+  // Why each paper is in the For You feed, by paper id.
+  const [reasons, setReasons] = useState<Map<string, Reason>>(new Map());
 
   // Signed in: open on the profile's default field, once, unless the reader
   // has already picked something.
@@ -109,18 +118,22 @@ export function Feed() {
     return () => ro.disconnect();
   }, []);
 
-  // Which fields to draw the "For You" candidate pool from: the ones you've
-  // saved from most, or a sensible default before you've saved anything.
+  // Which fields to draw the live "For You" candidate pool from: the fields
+  // behind the reader's strongest topics first, then the fields they have
+  // saved from, then a sensible default for a brand new reader.
   const poolFields = useCallback(() => {
     const counts = new Map<string, number>();
+    for (const t of reading.profile.top) {
+      const f = topicById(t.id)?.field;
+      if (f) counts.set(f, (counts.get(f) ?? 0) + t.weight);
+    }
     for (const p of saved) {
       const f = fieldForCategory(p.primaryCategory).id;
       counts.set(f, (counts.get(f) ?? 0) + 1);
     }
     const top = [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id);
-    const picks = top.length ? top.slice(0, 3) : FIELDS.slice(0, 3).map((f) => f.id);
-    return picks;
-  }, [saved]);
+    return top.length ? top.slice(0, 3) : FIELDS.slice(0, 3).map((f) => f.id);
+  }, [saved, reading.profile]);
 
   // --- loaders, one per mode ---
 
@@ -138,19 +151,52 @@ export function Feed() {
     [fieldId, effectiveQuery, start],
   );
 
-  // These requests are serialised and cached by the API route, so fanning
-  // out here does not burst arXiv.
-  const loadForYou = useCallback(async () => {
+  // For You candidates from arXiv, through the API route. The requests are
+  // serialised and cached there, so fanning out here does not burst arXiv.
+  // Similarity comes from the neural service when configured and reachable,
+  // from the local TF-IDF engine otherwise.
+  const livePool = useCallback(async (): Promise<Candidate[]> => {
     const results = await Promise.all(poolFields().map((f) => fetchField(f, "", 0, 20)));
     const pool = dedupe(results.flatMap((r) => r.papers));
     const err = results.find((r) => r.error)?.error;
     if (err) setError(err);
     else if (!pool.length) setError("Could not load recommendations. Try again.");
-    // Neural service when configured and reachable, local TF-IDF otherwise.
     const ranked = (await rankNeural(saved, pool)) ?? recommend(saved, pool);
-    setPapers(ranked.map((s) => s.paper));
-    setDone(true);
+    return liveCandidates(ranked);
   }, [poolFields, saved]);
+
+  // For You v2: candidates from the nightly paper store when it exists (no
+  // arXiv call at all), from the live pool otherwise, then one ranking blend
+  // over both (lib/foryou/rank.ts).
+  const loadForYou = useCallback(async () => {
+    const supabase = getSupabaseBrowser();
+    let candidates: Candidate[] = [];
+    if (await storeAvailable(supabase)) {
+      try {
+        candidates = await storeCandidates(supabase!, {
+          positives: reading.positives,
+          topics: reading.profile.top.map((t) => t.id),
+        });
+      } catch (err) {
+        console.warn("Paper store unavailable, using the live pool.", err);
+      }
+    }
+    if (candidates.length === 0) candidates = await livePool();
+
+    const ranked = rankForYou(candidates, {
+      profile: reading.profile,
+      hidden: reading.hidden,
+      exclude: new Set(saved.map((p) => p.id)),
+      seen: reading.seen,
+    });
+    setPapers(ranked.map((r) => r.paper));
+    setReasons(new Map(ranked.map((r) => [r.paper.id, r.reason])));
+    setDone(true);
+    // The profile changes with every event, and rebuilding the feed under the
+    // reader would be worse than a slightly stale order, so this deliberately
+    // only runs when the mode, field, or query changes (see the effect below).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [livePool, saved, reading.positives, reading.profile, reading.hidden, reading.seen]);
 
   const loadSimilar = useCallback(async (s: Paper) => {
     const f = fieldForCategory(s.primaryCategory).id;
@@ -169,6 +215,7 @@ export function Feed() {
       setLoading(true);
       setError(null);
       setPapers([]);
+      setReasons(new Map());
       setStart(0);
       setDone(false);
       try {
@@ -397,9 +444,23 @@ export function Feed() {
               accent={f.accent}
               fieldLabel={f.label}
               saved={isSaved(p.id)}
-              onToggleSave={() => toggle(p)}
+              onToggleSave={() => {
+                reading.log(isSaved(p.id) ? "unsave" : "save", p);
+                toggle(p);
+              }}
               onMoreLikeThis={() => goSimilar(p)}
-              onTopic={goTopic}
+              onTopic={(id) => {
+                reading.log("tag_tap", p);
+                goTopic(id);
+              }}
+              reason={mode === "foryou" ? reasons.get(p.id) : undefined}
+              hidden={reading.hidden.has(p.id)}
+              onSeen={() => reading.log("impression", p)}
+              onLeft={(ms) => reading.log("dwell", p, ms)}
+              onExpand={() => reading.log("expand", p)}
+              onRead={() => reading.log("read", p)}
+              onNotInterested={() => reading.log("not_interested", p)}
+              onUndoHide={() => reading.unhide(p.id)}
             />
           );
         })}
@@ -433,8 +494,8 @@ export function Feed() {
             )}
             {!loading && !error && papers.length > 0 && mode === "foryou" && (
               <span>
-                {saved.length === 0
-                  ? "Save a few papers and refresh — these will start matching your taste."
+                {reading.profile.top.length === 0
+                  ? "Read, save, and hide a few papers, then come back: these will start matching your taste."
                   : "End of your recommendations for now."}
               </span>
             )}

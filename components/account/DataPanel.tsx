@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Field, FormMessage } from "@/components/auth/ui";
 import { useProfile } from "@/lib/profile";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
+import { clearLocalReading, useReading } from "@/lib/foryou/useReading";
 import { clearLocalSaved, useSaved } from "@/lib/useSaved";
 
 // Everything the account holds, to take away or to delete. Export builds a
@@ -14,12 +15,18 @@ export function DataPanel() {
   const router = useRouter();
   const { profile } = useProfile();
   const { saved } = useSaved();
+  const reading = useReading({ account: profile });
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function exportJson() {
-    const payload = { exportedAt: new Date().toISOString(), profile, savedPapers: saved };
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      profile,
+      savedPapers: saved,
+      readingHistory: reading.events,
+    };
     const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }));
     const a = document.createElement("a");
     a.href = url;
@@ -40,6 +47,7 @@ export function DataPanel() {
     }
     await supabase.auth.signOut({ scope: "local" });
     clearLocalSaved();
+    clearLocalReading();
     router.push("/");
     router.refresh();
   }
@@ -49,8 +57,8 @@ export function DataPanel() {
       <div>
         <h1 className="font-display text-3xl font-semibold">Your data</h1>
         <p className="mt-2 text-muted">
-          The account holds your profile, your settings, and your saved papers. Nothing else is
-          collected.
+          The account holds your profile, your settings, your saved papers, and the reading
+          history For You learns from. Nothing else is collected.
         </p>
         <button
           onClick={exportJson}
@@ -58,7 +66,9 @@ export function DataPanel() {
         >
           Download everything as JSON
         </button>
-        <p className="mt-2 text-xs text-muted">{saved.length} saved papers.</p>
+        <p className="mt-2 text-xs text-muted">
+          {saved.length} saved papers, {reading.events.length} recent reading actions.
+        </p>
       </div>
 
       <div>

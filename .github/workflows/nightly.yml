@@ -1,0 +1,70 @@
+# Builds the paper store once a night: fetch from arXiv, tag, embed, upload.
+#
+# This is what keeps For You fast and keeps arXiv quiet. Instead of every
+# reader's "For You" tap causing arXiv requests, one machine asks arXiv about
+# a dozen times a night and everyone reads the result out of the database.
+#
+# It needs two repository secrets (Settings, Secrets and variables, Actions):
+#   SUPABASE_URL           the project URL, the same one the site uses
+#   SUPABASE_SERVICE_KEY   the service_role key, which may write the papers
+#                          table. It lives here and nowhere else: never in
+#                          .env.local, never in a NEXT_PUBLIC_ variable,
+#                          never in the browser.
+# Without them the job fetches and embeds and then stops, which is a useful
+# dry run and costs nothing.
+name: Nightly paper store
+
+on:
+  schedule:
+    - cron: "40 5 * * *" # daily, 05:40 UTC, before most of Europe wakes up
+  workflow_dispatch: # and on demand from the Actions tab
+
+# One run at a time: two jobs writing the same table would just repeat work.
+concurrency:
+  group: nightly-store
+  cancel-in-progress: false
+
+jobs:
+  build-store:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Fetch and tag papers from arXiv
+        run: npx tsx scripts/nightly/fetch.ts papers.json
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      # The CPU build only: the GPU wheels are two gigabytes and pointless on
+      # a runner without a GPU.
+      - name: Install the embedding model
+        run: |
+          pip install --extra-index-url https://download.pytorch.org/whl/cpu \
+            "torch==2.5.1+cpu" "sentence-transformers>=3.0" "numpy>=1.26"
+
+      - name: Embed the abstracts
+        run: python recommender/embed.py papers.json papers.json
+
+      - name: Upload to Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: npx tsx scripts/nightly/upload.ts papers.json
+
+      # Kept for a week so a bad night can be inspected without rerunning it.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: papers
+          path: papers.json
+          retention-days: 7

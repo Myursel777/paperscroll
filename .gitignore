@@ -13,6 +13,9 @@ __pycache__/
 *.pyc
 .venv/
 
+# output of the nightly job when it is run by hand
+/papers.json
+
 # test output
 /test-results
 /playwright-report

@@ -45,6 +45,12 @@ async function main() {
   }
 
   const store: Store = JSON.parse(readFileSync(file, "utf8"));
+  if (store.papers.length === 0) {
+    // arXiv refused every request tonight (see fetch.ts). Doing nothing is
+    // right: pruning against an empty fetch would empty the store.
+    console.log("No papers in the file; leaving the store as it is.");
+    return;
+  }
   const supabase = createClient(url, key, { auth: { persistSession: false } });
 
   // 1. The papers themselves.

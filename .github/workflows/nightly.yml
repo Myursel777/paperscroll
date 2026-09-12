@@ -27,7 +27,10 @@ concurrency:
 jobs:
   build-store:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Long enough to wait out arXiv throttling the runner's shared address
+    # (see scripts/nightly/fetch.ts), which can cost up to twenty minutes
+    # before the job gives up and uses the daily feeds instead.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 

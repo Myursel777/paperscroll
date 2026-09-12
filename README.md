@@ -110,7 +110,11 @@ the feed learns logged out and follows you between devices when signed in.
 
 - **The paper store.** A nightly GitHub Actions job fetches recent papers from
   arXiv, tags them, embeds them with `all-MiniLM-L6-v2`, and writes them to
-  Supabase with pgvector. The browser then asks the database for the nearest
+  Supabase with pgvector. arXiv limits requests by address and an Actions
+  runner shares its address with every other job on that machine, so the job
+  waits out a refusal a few times and then falls back to arXiv's daily RSS
+  feeds, which are served by a different host. A night where both refuse is a
+  warning, not a failure: the store keeps what it has. The browser then asks the database for the nearest
   papers to its content profile (the weighted average of the embeddings of
   papers it responded to) and for fresh papers on its top topics. arXiv is not
   called at all on this path: once a night for everybody, instead of once per
@@ -207,6 +211,7 @@ components/
   RegisterSW.tsx        Registers the service worker in production
 lib/
   arxiv.ts              Types, FIELDS map, XML to Paper parser
+  arxivRss.ts           Daily RSS feeds, the nightly job's fallback source
   topics.ts             Topic taxonomy: 56 topics with patterns, categories, and searches
   tagger.ts             Rule-based tagger: up to three topics per paper, explainable
   neuralTagger.ts       Client for the embedding tagger in the Python service, with fallback

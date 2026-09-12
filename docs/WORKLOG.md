@@ -82,7 +82,27 @@ about them, where candidate papers come from, and how they are ordered.
   hide and undo, the account round trip with the sliders, and a store-backed
   feed that proves arXiv is not called when the store exists.
 
-- **How it was checked.** 76 unit tests, 81 end-to-end tests in Chromium,
+- **arXiv throttles cloud addresses.** The first real run of the nightly job
+  was refused with HTTP 429 on its very first request, twenty seconds in. The
+  cause is not our pacing, which arXiv's own guidance sets and the client has
+  always followed: the search API limits by address and a GitHub Actions
+  runner shares its address with every other job on that machine, so the night
+  can start already in penalty. Three changes, none of them touching how the
+  app behaves for a reader. The job now waits out a refusal up to four times,
+  honouring the Retry-After arXiv sends. If it is still refused, or was cut
+  short partway, it tops up from arXiv's daily RSS feeds at `rss.arxiv.org`, a
+  different host that is not throttled the same way; those carry only the
+  latest announcement and nothing at weekends, which is a thinner night but
+  better than none. And a night where everything refuses is now a warning
+  rather than a red failure, because the store keeps yesterday's papers and
+  the site falls back to asking arXiv live, so there is nothing for anyone to
+  fix. The upload step refuses to prune against an empty fetch, which would
+  otherwise have emptied the store on exactly such a night. The feed parser
+  (`lib/arxivRss.ts`) has thirteen unit tests and was checked against a live
+  feed of 273 papers: every one parsed with a title, abstract, authors, and
+  categories, and 215 of them tagged, the tagger's usual rate.
+
+- **How it was checked.** 89 unit tests, 81 end-to-end tests in Chromium,
   WebKit, and mobile Chrome (Firefox in CI, as before). The nightly job was
   rehearsed end to end against the stand-in Supabase with a real arXiv fetch
   and stand-in vectors: 26 papers stored, the embedding column correctly

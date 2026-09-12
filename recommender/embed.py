@@ -40,8 +40,10 @@ def main() -> int:
         store = json.load(fh)
     papers = store.get("papers", [])
     if not papers:
+        # A night where arXiv refused every request. Not an error: the store
+        # keeps what it already has and the upload step does nothing.
         print("nothing to embed")
-        return 1
+        return 0
 
     print(f"loading {MODEL_NAME}")
     model = SentenceTransformer(MODEL_NAME)

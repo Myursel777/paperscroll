@@ -86,6 +86,12 @@ arXiv per reader. It needs two more repository secrets:
 | `SUPABASE_URL` | the project URL, the same one the site uses |
 | `SUPABASE_SERVICE_KEY` | the **service_role** key from Project Settings, API |
 
+If a run ends yellow with "arXiv returned nothing tonight", nothing is wrong
+with the setup: arXiv limits requests by address and Actions runners share
+theirs. The job waits, then tries arXiv's daily feeds, and if those are empty
+too (they carry nothing at weekends) it leaves the store alone and the site
+uses the live path. The next night usually works.
+
 The service-role key bypasses row-level security, so it belongs in the
 repository secrets and nowhere else: never in `.env.local`, never in a
 `NEXT_PUBLIC_` variable, never in the browser. The website only reads this

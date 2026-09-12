@@ -3,6 +3,92 @@
 Newest entry first. Each entry says what changed, why, and how it was checked,
 so the git history can be read without re-deriving the reasoning.
 
+## 2026-09-12: Phase 4 (For You v2)
+
+The recommendation feed stopped being "papers that share words with the ones
+you saved" and became something that learns from reading. Four pieces, each
+written so it can be read on its own: what the reader does, what that says
+about them, where candidate papers come from, and how they are ordered.
+
+- **Events** (`lib/foryou/events.ts`). Every action on a paper becomes one
+  small record: the card came into view, it was on screen for so many
+  milliseconds, the abstract was expanded, the paper was opened, saved,
+  unsaved, hidden, or a topic chip was tapped. Each event carries the paper's
+  topics, so the profile can be rebuilt from events alone without looking any
+  paper up again. Storage follows the pattern saved papers already use: the
+  browser always keeps its own copy in `localStorage`, so the feed learns
+  logged out and offline, and a signed-in reader also gets the account copy,
+  queued and flushed in batches (events arrive in bursts as you scroll, so a
+  short delay turns a scroll into one request). Sixty days and 800 events are
+  kept, whichever comes first.
+
+- **Interest profile** (`lib/foryou/profile.ts`). One weight per topic. A save
+  counts 3, a read 2, tag tap 1.5, expand 1, a long look up to 1 (nothing
+  under two seconds, full weight at thirty), unsave -2, not interested -3.
+  Weights fade with a **30-day half-life**, so a phase of reading about one
+  subject does not follow you for ever. Topics picked at onboarding are a
+  prior that does not fade, which is what makes a new account useful before
+  anything has been read; the sliders multiply a topic and add or remove one
+  prior's worth, so turning up a topic with no history still does something.
+  All pure functions, unit tested, and the page at `/account/foryou` shows
+  exactly these numbers as bars.
+
+- **Candidates** (`lib/foryou/candidates.ts`, `supabase/migrations/0002_for_you.sql`).
+  A new `papers` table holds recent papers with their topics, a 384-wide
+  pgvector embedding, and a popularity score; it is public to read and written
+  only by the nightly job. The browser builds a content profile (the weighted
+  average of the embeddings of papers it responded to) and asks the database
+  for the nearest papers with `nearest_papers`, plus fresh papers on its top
+  topics. On that path **arXiv is not called at all**: once a night for
+  everybody instead of once per reader per tap. With no store, the old live
+  pool and the TF-IDF engine are used, so nothing is required for the feature
+  to work.
+
+- **Ranking** (`lib/foryou/rank.ts`). One score per paper, then a list built a
+  slot at a time:
+  `(0.45 similarity + 0.30 topic + 0.15 recency + 0.10 popularity) x novelty`,
+  a penalty for each already-picked paper sharing the same first topic so one
+  theme cannot fill the screen, and every sixth slot reserved for a good paper
+  from outside the reader's top topics. The part that contributed most becomes
+  the line on the card: "Because you read about Diffusion models", "Close to
+  papers you responded to", "Something different". Hidden papers never appear
+  and seen ones are damped.
+
+- **The nightly job** (`.github/workflows/nightly.yml`). Three steps: fetch and
+  tag from arXiv (`scripts/nightly/fetch.ts`, the same polite client the app
+  uses), embed with `all-MiniLM-L6-v2` on the CPU build of torch
+  (`recommender/embed.py`), upload and refresh popularity
+  (`scripts/nightly/upload.ts`). It needs the project URL and the service-role
+  key as repository secrets, and that key lives there and nowhere else: not in
+  `.env.local`, not in a public variable, never in the browser. Without the
+  secrets the job is a harmless dry run.
+
+- **Does it work?** `scripts/foryou-eval.ts` invents a reader per topic out of
+  the 150-paper sample, has them save three papers of that topic, and measures
+  how much of the top ten carries it. Mean precision at 10: recency 0.02,
+  TF-IDF 0.28, topic affinity 0.53, the blend 0.56. The honest caveat, which
+  the script prints too: relevance is the topic tag itself, so the topic
+  engine is judged against its own definition. What the numbers do show is
+  that every engine beats newest-first by a wide margin and that the blend
+  buys diversity, freshness, and exploration without costing precision.
+
+- **Two bugs the tests caught.** The For You page passed the profile to the
+  reading hook but not the function that saves it, so a slider was written to
+  the browser and then ignored in favour of the account row: it moved and
+  sprang back. And the first draft of the "not interested" test looked for the
+  hidden card in the field feed, where it need not be, because the For You
+  pool is drawn from whichever fields the reader's topics belong to. Both are
+  now covered: five end-to-end tests for the reasons on cards, the ordering,
+  hide and undo, the account round trip with the sliders, and a store-backed
+  feed that proves arXiv is not called when the store exists.
+
+- **How it was checked.** 76 unit tests, 81 end-to-end tests in Chromium,
+  WebKit, and mobile Chrome (Firefox in CI, as before). The nightly job was
+  rehearsed end to end against the stand-in Supabase with a real arXiv fetch
+  and stand-in vectors: 26 papers stored, the embedding column correctly
+  hidden from the default select, the topic-overlap query and the
+  nearest-neighbour search both returning the right papers.
+
 ## 2026-09-11: Phase 3 started (accounts)
 
 Decisions: Supabase free tier, email and password only, logged-out visitors

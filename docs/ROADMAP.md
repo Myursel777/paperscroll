@@ -48,8 +48,9 @@ on the server, never in the browser while scrolling.
 
 Done, and verified against a real project with a real inbox.
 
-Tables: profiles, saved_papers, collections, events, user_topics, papers,
-paper_tags, paper_embeddings (pgvector). Row-level security on every table.
+Tables: profiles, saved_papers, collections. Phase 4 adds events and papers
+(tags and pgvector embedding in the same row). Row-level security on every
+table that belongs to a user.
 
 - [x] Auth: email and password (magic link and Google sign-in deferred; both are switches in Supabase plus one button each)
 - [x] Pages: sign up, log in, forgot password, reset password, verify email, onboarding (default field plus at least three topics)
@@ -61,13 +62,16 @@ paper_tags, paper_embeddings (pgvector). Row-level security on every table.
 
 ## Phase 4: For You v2
 
-- [ ] Event tracking: impression, dwell, expand, read, save, unsave, not interested, tag tap
-- [ ] Interest profile: one weight per topic per user with a 30-day half-life
-- [ ] Content profile in pgvector; candidates from nearest-neighbour search
-- [ ] Ranking blend: similarity, topic affinity, recency, popularity, novelty and diversity, exploration
-- [ ] Nightly job (GitHub Actions cron): fetch, tag, embed, store; arXiv hit once a night
-- [ ] Evaluation harness: precision at 10 for TF-IDF, neural, and the blend; numbers in the README
-- [ ] User controls: "why you are seeing this", not interested, topic sliders
+Done. The nightly job needs two repository secrets before it does anything;
+without them it is a dry run and the feed uses the live path.
+
+- [x] Event tracking: impression, dwell, expand, read, save, unsave, not interested, tag tap (`lib/foryou/events.ts`; browser copy plus account sync)
+- [x] Interest profile: one weight per topic per user with a 30-day half-life (`lib/foryou/profile.ts`)
+- [x] Content profile in pgvector; candidates from nearest-neighbour search (`nearest_papers`, `lib/foryou/candidates.ts`)
+- [x] Ranking blend: similarity, topic affinity, recency, popularity, novelty and diversity, exploration (`lib/foryou/rank.ts`)
+- [x] Nightly job (GitHub Actions cron): fetch, tag, embed, store; arXiv hit once a night (`.github/workflows/nightly.yml`)
+- [x] Evaluation harness: precision at 10 for TF-IDF, neural, and the blend; numbers in the README (`scripts/foryou-eval.ts`)
+- [x] User controls: "why you are seeing this", not interested, topic sliders (`/account/foryou`)
 
 ## Phase 5: polish
 

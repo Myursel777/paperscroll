@@ -41,6 +41,21 @@ the paper (cosine similarity at or above `threshold`, best first, at most
 `max_tags`). Topic embeddings are cached by text, so the taxonomy can be sent
 with every request without recomputing it.
 
+## Embedding the nightly store
+
+`embed.py` is the second step of the nightly job. It reads the file written by
+`scripts/nightly/fetch.ts`, embeds every paper with the same model, and writes
+the vectors back in place:
+
+```bash
+python recommender/embed.py papers.json papers.json
+```
+
+The vectors are unit length and 384 wide, which is what the `papers.embedding`
+column and the `nearest_papers` function in the database expect. In GitHub
+Actions this runs on the CPU build of torch; locally it needs the same
+requirements as the service.
+
 ## Wiring it into the app
 
 Point the Next app at this service with env vars and restart `npm run dev`:
@@ -65,4 +80,4 @@ the neural ranking is a progressive upgrade.
 - Real embedding model serving meaning-based similarity.
 - Clean profile-vector + cosine ranking with a recency blend.
 - Graceful degradation (neural when up, TF-IDF when not).
-Document these choices — that reasoning is what reviewers actually read.
+Document these choices: that reasoning is what reviewers actually read.

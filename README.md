@@ -1,6 +1,6 @@
 # PaperScroll
 
-A scrollable, swipe-through feed of the latest academic papers — built to prove
+A scrollable, swipe-through feed of the latest academic papers, built to prove
 that reading research can be as easy as opening an app. Papers are pulled live
 from the [arXiv API](https://info.arxiv.org/help/api/index.html); no database,
 no paper hosting, no scraping.
@@ -33,6 +33,10 @@ the sitemap and share preview use it.
 | `npm run test:e2e` | End-to-end tests (Playwright) in `tests/e2e`; run `npm run build:test` first. Starts the fake Supabase and the app |
 | `npm run fake-supabase` | In-memory stand-in for Supabase on :54321, for developing the account features offline |
 | `npx tsx scripts/tag-report.ts` | Tagger quality report over the saved sample in `tests/fixtures`; `fetch` pulls a new sample, `eval` scores labelled papers |
+| `npx tsx scripts/foryou-eval.ts` | Precision at 10 for each ranking engine over the same sample; `--verbose` prints a line per simulated reader |
+| `npx tsx scripts/nightly/fetch.ts papers.json` | Step 1 of the nightly job: fetch recent papers from arXiv and tag them |
+| `python recommender/embed.py papers.json papers.json` | Step 2: add a sentence embedding to each paper |
+| `npx tsx scripts/nightly/upload.ts papers.json` | Step 3: write them to Supabase (needs `SUPABASE_URL` and `SUPABASE_SERVICE_KEY`) |
 
 The end-to-end tests answer `/api/papers` from a fake inside the browser and
 talk to the fake Supabase for accounts, so they never call arXiv or any
@@ -47,13 +51,18 @@ Progress and reasoning live in [docs/ROADMAP.md](docs/ROADMAP.md) and
 
 ## What it does today
 
-- Vertical **swipe/scroll feed** of papers (CSS scroll-snap — works with wheel,
+- Vertical **swipe/scroll feed** of papers (CSS scroll-snap, which works with wheel,
   trackpad, and touch).
 - **Fields of study** as sections (AI & ML, NLP, Vision, Neuroscience, …), each
   mapped to real arXiv categories and given its own accent colour.
-- **For You** — a personalised feed ranked by how similar each paper is to the
-  ones you've saved (see "Recommender" below). Works with zero setup.
-- **Similar** — "more like this" on any card, ranked by content similarity.
+- **For You**: a personalised feed that learns from what you actually do:
+  which cards you linger on, expand, open, save, or hide. It blends content
+  similarity, topic affinity, freshness, popularity, and novelty, spreads the
+  topics out, and keeps every sixth slot for something outside your usual
+  reading. Each card says in one line why it is there, and "Not interested"
+  takes a paper out. Works with zero setup and works logged out, where the
+  history stays in your browser.
+- **Similar**: "more like this" on any card, ranked by content similarity.
 - **Topics**: every paper carries up to three topic tags (for example
   "Diffusion models" or "Medical imaging") from a fixed taxonomy of 56 topics
   in `lib/topics.ts`. Tags are computed on the server: by the embedding
@@ -70,7 +79,7 @@ Progress and reasoning live in [docs/ROADMAP.md](docs/ROADMAP.md) and
   browser; local saves merge into the account on first login. See
   `supabase/README.md` for the ten-minute setup, or run without it.
 - **Read** (arXiv abstract page) and **PDF** links on every card.
-- **Infinite scroll** — new pages load automatically as you near the end.
+- **Infinite scroll**: new pages load automatically as you near the end.
 - **Installable**: a web app manifest and a small service worker let you add
   PaperScroll to a phone's home screen. The app shell is cached so it opens
   instantly; paper data always comes from the network.
@@ -78,11 +87,72 @@ Progress and reasoning live in [docs/ROADMAP.md](docs/ROADMAP.md) and
   scrolling and the loading animation are switched off when the system asks
   for reduced motion.
 
+## For You
+
+The feed on the "For You" tab is a small recommender with every part visible
+and explainable. It has three jobs: learn what a reader likes, find candidate
+papers, and put them in an order.
+
+**1. Learning (`lib/foryou/`).** Each thing a reader does with a paper becomes
+one event: `impression`, `dwell` (with how long the card was on screen),
+`expand`, `read`, `save`, `unsave`, `not_interested`, `tag_tap`. The event
+carries the paper's topic tags, so a profile can be built from events alone.
+Every event adds its weight to each of those topics, and weights fade with a
+**30-day half-life**, so this week counts twice as much as a month ago. Topics
+picked at onboarding act as a prior that does not fade, which is what makes a
+brand new account useful before anything has been read. Sliders on
+`/account/foryou` multiply a topic up or down by hand.
+
+Events live in `localStorage` and, with an account, in the `events` table, so
+the feed learns logged out and follows you between devices when signed in.
+
+**2. Candidates.** Two sources, picked at load time:
+
+- **The paper store.** A nightly GitHub Actions job fetches recent papers from
+  arXiv, tags them, embeds them with `all-MiniLM-L6-v2`, and writes them to
+  Supabase with pgvector. The browser then asks the database for the nearest
+  papers to its content profile (the weighted average of the embeddings of
+  papers it responded to) and for fresh papers on its top topics. arXiv is not
+  called at all on this path: once a night for everybody, instead of once per
+  reader per tap.
+- **Live.** With no store configured, the pool is the newest papers from the
+  reader's fields through the usual API route, with similarity from the TF-IDF
+  engine (or the neural service when it is running).
+
+**3. Ranking (`lib/foryou/rank.ts`).** One score per paper:
+
+```
+score = (0.45 x similarity + 0.30 x topic affinity + 0.15 x recency + 0.10 x popularity) x novelty
+```
+
+Then the list is built one slot at a time: a candidate is penalised for every
+paper already picked that shares its first topic, so one theme cannot fill the
+screen, and every sixth slot goes to a good paper from outside the reader's
+top topics, labelled "Something different". Papers marked not interested never
+appear; papers already seen are damped by the novelty term.
+
+**Does it work?** `npx tsx scripts/foryou-eval.ts` invents a reader per topic
+from the 150-paper sample, has them save three papers of that topic, and
+measures how much of the top ten carries it:
+
+| Engine | Precision at 10 |
+|---|---|
+| recency (baseline) | 0.02 |
+| TF-IDF similarity | 0.28 |
+| topic affinity | 0.53 |
+| the blend | 0.56 |
+
+Read those with the caveat the script prints: relevance is the topic tag
+itself, so the topic engine is being marked against its own definition. The
+useful readings are that every engine beats newest-first by a wide margin, and
+that the blend adds similarity, freshness, and topic spread without losing
+precision.
+
 ## Recommender
 
 Two layers, both included:
 
-1. **In-app (default, no setup):** `lib/recommender.ts` — a dependency-free
+1. **In-app (default, no setup):** `lib/recommender.ts`, a dependency-free
    TF-IDF + cosine engine. It builds a profile vector from your saved papers and
    ranks candidates by similarity, blended with recency. Runs instantly in the
    browser. Powers "For You" and "Similar".
@@ -146,6 +216,7 @@ lib/
   neuralRecommender.ts  Client for the optional neural service, with fallback
   useSaved.ts           Saved papers: browser copy plus account sync with a retry queue
   saved/                Merge logic, Supabase calls, collections
+  foryou/               For You v2: events, interest profile, ranking blend, candidates
   supabase/             Browser and server clients, on/off switch
   auth/                 useUser hook, friendly error messages
   profile.ts            The profile row (default field, interests)
@@ -164,6 +235,8 @@ tests/
   fixtures/             150-paper sample used by the tagger report
 scripts/
   tag-report.ts         Tagger quality report, sample fetch, precision and recall
+  foryou-eval.ts        Precision at 10 per ranking engine
+  nightly/              The nightly job: fetch and tag, then upload to Supabase
   fake-supabase.ts      In-memory stand-in for Supabase, for development and tests
   with-test-env.mjs     Runs a command with the test build folder and fake Supabase address
 docs/
@@ -184,7 +257,7 @@ In short:
 2. **Production-ready website**: tests, CI, standard pages, accessibility, dark mode, self-hosted fonts, deploy. Done except the deploy.
 3. **Topic tagging**: a fixed taxonomy, rule-based then embedding-based tags, tag filters.
 4. **Accounts** on Supabase: sign up, log in, account pages, synced library.
-5. **For You v2**: interest profile from reading behaviour, nightly tagging and embedding job, evaluation harness.
+5. **For You v2**: interest profile from reading behaviour, nightly tagging and embedding job, evaluation harness. Done.
 6. **Polish**: digest emails, sharing, more sources, monitoring, write-up.
 7. **Mobile app** with Expo, sharing the data layer with the website.
 
@@ -203,4 +276,4 @@ In short:
 - arXiv content is the authors'; this app only links to it, never rehosts it.
 
 ## License
-MIT — do what you like.
+MIT. Do what you like.

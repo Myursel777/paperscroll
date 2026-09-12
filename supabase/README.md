@@ -12,7 +12,9 @@ tier.
 2. In the dashboard open **SQL Editor**, choose **New query**, paste the whole
    of `migrations/0001_accounts.sql`, and run it. It creates the tables, the
    row-level security policies, the profile trigger, and the
-   delete-own-account function.
+   delete-own-account function. Then do the same with
+   `migrations/0002_for_you.sql`, which adds the reading events, the paper
+   store, and the nearest-neighbour search For You uses.
 3. Open **Project Settings, API**. Copy the **Project URL** and the **anon
    public** key into `.env.local` in the repository root:
 
@@ -66,5 +68,36 @@ Actions).
 | `profiles` | display name, default field, interests, onboarding flag | the owner |
 | `collections` | a named folder for saved papers | the owner |
 | `saved_papers` | the paper as shown in the feed, when it was saved, optional collection | the owner |
+| `events` | one reading action: paper, type, topics, how long the card was on screen | the owner |
+| `papers` | recent papers with their topics, embedding, and popularity | everybody (read only) |
 
-Deleting an account removes all three through cascades.
+Deleting an account removes everything that belongs to it through cascades.
+The `papers` table belongs to nobody: it holds public arXiv metadata, it is
+readable by anyone, and only the nightly job can write it.
+
+## The nightly paper store
+
+`.github/workflows/nightly.yml` fills the `papers` table once a night: fetch
+from arXiv, tag, embed, upload. It is what lets For You rank without calling
+arXiv per reader. It needs two more repository secrets:
+
+| Secret | What it is |
+|---|---|
+| `SUPABASE_URL` | the project URL, the same one the site uses |
+| `SUPABASE_SERVICE_KEY` | the **service_role** key from Project Settings, API |
+
+The service-role key bypasses row-level security, so it belongs in the
+repository secrets and nowhere else: never in `.env.local`, never in a
+`NEXT_PUBLIC_` variable, never in the browser. The website only reads this
+table, with the public key. Without the secrets the job still fetches and
+embeds and then stops, which is a harmless dry run, and the site falls back to
+the live path.
+
+To rehearse the whole job against the stand-in, where the service key is the
+literal `fake-service-key`:
+
+```bash
+npm run fake-supabase
+npx tsx scripts/nightly/fetch.ts papers.json
+SUPABASE_URL=http://localhost:54321 SUPABASE_SERVICE_KEY=fake-service-key npx tsx scripts/nightly/upload.ts papers.json
+```

@@ -28,8 +28,12 @@ import { SkeletonCard } from "@/components/SkeletonCard";
 const PER_PAGE = 12;
 type Mode = "field" | "foryou" | "similar";
 
-const STALE_NOTICE =
-  "arXiv is rate limiting us right now, so these are cached results.";
+// Shown when the papers did not come from arXiv just now. The route says
+// which source answered (see app/api/papers/route.ts).
+const STALE_NOTICE: Record<string, string> = {
+  cache: "arXiv is busy right now, so these are the results we had cached.",
+  store: "arXiv is busy right now, so these are from our own nightly copy. They may be a day old.",
+};
 
 // Fetch one page of a field from our API route. The route queues and caches
 // arXiv calls, so calling this freely from the client is safe; on a 429 it
@@ -41,7 +45,9 @@ async function fetchField(field: string, q = "", start = 0, max = PER_PAGE) {
     const data = await res.json();
     return {
       papers: (data.papers ?? []) as Paper[],
-      error: (data.error as string | undefined) ?? (data.stale ? STALE_NOTICE : undefined),
+      error:
+        (data.error as string | undefined) ??
+        (data.stale ? (STALE_NOTICE[data.source as string] ?? STALE_NOTICE.cache) : undefined),
     };
   } catch {
     return { papers: [] as Paper[], error: "Could not reach the server. Check your connection and try again." };

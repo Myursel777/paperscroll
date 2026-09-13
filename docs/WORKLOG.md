@@ -3,6 +3,39 @@
 Newest entry first. Each entry says what changed, why, and how it was checked,
 so the git history can be read without re-deriving the reasoning.
 
+## 2026-09-13: The feed no longer depends on arXiv answering
+
+- **What the deployed site actually did.** The live feed showed "arXiv is rate
+  limiting us right now" instead of papers. Measuring it changed the diagnosis
+  twice. arXiv does not block Vercel: one request succeeded, then six in a row
+  failed. What happens is that arXiv refuses intermittently, and the client
+  then stops calling it for a minute, which is the correct manners towards a
+  service asking for quiet. On one long-lived server that minute costs almost
+  nothing, because the ten-minute cache carries the load. On a serverless host
+  it costs everything, because each instance starts cold, so a visitor
+  arriving during the pause has no cache to fall back on and sees an error.
+
+- **The fix uses what was already there.** The nightly job has been filling a
+  table of recent papers with their topics since Phase 4, and until now only
+  the For You feed read it. The API route now tries arXiv, then this
+  instance's expired cache, then the store, and only shows an error when all
+  three have nothing. `lib/papersStore.ts` reads it over plain PostgREST with
+  the two public values, with a three-second timeout, and never throws:
+  a fallback that fails must not replace the error it was called to avoid.
+  The reply says which source answered, so the card can say "these are from
+  our own nightly copy, they may be a day old" rather than something vague.
+  Twelve unit tests cover the query, including stripping the characters
+  PostgREST reads as syntax out of a reader's search. Verified for real:
+  with this machine's address still being refused by arXiv, every field and
+  both searches returned tagged papers from the store.
+
+- **A second bug, found by accident.** The local `.env.local` had the Vercel
+  address where the Supabase project address belongs, so every local database
+  call returned 404 and the fallback appeared broken when it was not. It was
+  presumably pasted there during the deploy. Production was never affected,
+  since Vercel holds its own copy, which was confirmed by finding the right
+  host in the JavaScript the site ships.
+
 ## 2026-09-13: The first deploy, and the bug it found
 
 - **A bad address broke the build, and said nothing useful.** The first Vercel

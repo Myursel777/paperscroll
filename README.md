@@ -274,8 +274,9 @@ In short:
   query in memory for ten minutes, and shares one call between identical
   requests that arrive together. Keep all of that.
 - If arXiv answers 429 (too many requests), the route serves the cached copy of
-  that query if it has one, and otherwise returns a short message and stops
-  calling arXiv for a minute. It never retries in a loop; that only makes the
+  that query if it has one, then the nightly paper store in the database if
+  there is one, and only if both are empty does it return a short message. It
+  stops calling arXiv for a minute either way. It never retries in a loop; that only makes the
   throttle last longer. If you get throttled during development, wait a few
   minutes before trying again.
 - arXiv content is the authors'; this app only links to it, never rehosts it.

@@ -3,6 +3,25 @@
 Newest entry first. Each entry says what changed, why, and how it was checked,
 so the git history can be read without re-deriving the reasoning.
 
+## 2026-09-13: The first deploy, and the bug it found
+
+- **A bad address broke the build, and said nothing useful.** The first Vercel
+  deploy failed with "Failed to collect page data for /_not-found", a page
+  that has nothing to do with the cause. The root layout hands `siteUrl` to
+  Next as `metadataBase`, which parses it with `new URL`, and every page
+  renders inside that layout, so an address Next cannot parse takes down the
+  build and gets blamed on whichever page Next reached first. Two ways to get
+  there, both reproduced locally and both easy to do by hand: setting
+  `NEXT_PUBLIC_SITE_URL` to an address with no `https://` in front, or leaving
+  the variable in place with nothing in it. The second is nastier than it
+  looks, because `??` only falls back on a missing value, never on an empty
+  one, so an empty string sailed through as if it were an address.
+  `normaliseSiteUrl` now fills in a missing scheme, treats blank as unset,
+  checks the result really parses and really has a host, and falls through to
+  Vercel's own per-deployment address and then to localhost. Seven unit tests
+  cover the shapes that reached a real deploy, and the build was rerun under
+  each failing condition to confirm it now compiles.
+
 ## 2026-09-12: Phase 4 (For You v2)
 
 The recommendation feed stopped being "papers that share words with the ones

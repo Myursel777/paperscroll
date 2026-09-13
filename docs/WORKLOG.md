@@ -3,6 +3,38 @@
 Newest entry first. Each entry says what changed, why, and how it was checked,
 so the git history can be read without re-deriving the reasoning.
 
+## 2026-09-13: Onboarding could be lost for ever
+
+Found by signing up on the deployed site as a stranger would, in a private
+window. The confirmation email arrived, the link pointed at the live site as
+it should, and then the page said the link was invalid.
+
+- **Why the link failed.** Sign-up uses PKCE: the browser that starts it keeps
+  a secret that only it can use to finish. Opening the email in a different
+  browser, or in the ordinary window when sign-up happened in a private one,
+  means that secret is missing and the exchange cannot complete. Nothing is
+  broken and the address is confirmed either way, because Supabase marks it
+  before redirecting. The old message said the link was invalid or expired,
+  which was misleading: it was neither. It now explains what actually
+  happened and says the address is confirmed, so logging in is enough.
+
+- **The real bug underneath.** Onboarding was reachable through exactly one
+  route, the `next` parameter on the emailed link. Anyone whose exchange
+  failed, or who simply signed in later on a second device, never saw it and
+  never could: nothing else in the app ever sent them there, so their default
+  field and interests stayed empty and For You started colder than it needed
+  to. Logging in now checks the profile once, and a reader who has never been
+  onboarded goes there instead of to the feed, unless they were already on
+  their way somewhere specific. Skipping is now recorded rather than being a
+  plain link home, so the choice sticks instead of being asked again at every
+  login.
+
+- **How it was checked.** A new end-to-end test signs up in one browser,
+  opens the confirmation link in a second, and proves the first browser is
+  still offered onboarding when it logs in, and that skipping is remembered.
+  One older test had to change with it: an account that resets its password
+  but has never been onboarded now lands on onboarding, which is the point.
+
 ## 2026-09-13: The feed no longer depends on arXiv answering
 
 - **What the deployed site actually did.** The live feed showed "arXiv is rate

@@ -26,6 +26,17 @@ export function OnboardingForm() {
     setInterests(profile.interests);
   }, [profile]);
 
+  /** Skipping is a choice, so it is remembered; otherwise every login would ask again. */
+  async function skip() {
+    try {
+      await update({ onboarded: true });
+    } catch {
+      // Not worth blocking the reader over; they can set this in Settings.
+    }
+    router.push("/");
+    router.refresh();
+  }
+
   async function finish() {
     if (interests.length < MIN_TOPICS) return setError(`Pick at least ${MIN_TOPICS} topics so For You has something to go on.`);
     setBusy(true);
@@ -86,9 +97,9 @@ export function OnboardingForm() {
           <div className="w-56">
             <Submit busy={busy || loading}>Start reading</Submit>
           </div>
-          <Link href="/" className={linkClass}>
+          <button type="button" onClick={() => void skip()} className={linkClass}>
             Skip for now
-          </Link>
+          </button>
         </div>
       </form>
     </main>

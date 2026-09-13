@@ -102,11 +102,44 @@ test("the password reset link lets the user choose a new password", async ({ pag
   await page.context().clearCookies();
   await page.goto("/login");
   await logIn(page, email, "brand new pass");
-  await expect(page).toHaveURL("/");
-  await expect(page.getByRole("link", { name: "Your account" })).toBeVisible();
+  // This account has never been through onboarding, so that is where a first
+  // login lands. Arriving there at all is what proves the new password works.
+  await expect(page).toHaveURL(/\/onboarding/);
 });
 
 test("without a session the reset page explains the link expired", async ({ page }) => {
   await page.goto("/reset-password");
   await expect(page.getByRole("heading", { name: "This link has expired." })).toBeVisible();
+});
+
+test("logging in for the first time from another browser still offers onboarding", async ({ page, browser }) => {
+  // The confirmation link carries a one-time code that only the browser which
+  // signed up can exchange. Opening it elsewhere confirms the address but
+  // cannot sign the reader in, and onboarding used to be lost for ever.
+  const email = uniqueEmail("elsewhere");
+  await page.goto("/signup");
+  await page.getByLabel("Name").fill("Ada");
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password").fill("correct horse");
+  await page.getByRole("button", { name: "Create account" }).click();
+  await expect(page.getByRole("heading", { name: "Check your inbox." })).toBeVisible();
+
+  // A second, separate browser opens the link: the address is confirmed but
+  // no session is created here.
+  const other = await browser.newContext();
+  const otherPage = await other.newPage();
+  await otherPage.goto(await emailLink(email, "signup"));
+  await otherPage.close();
+  await other.close();
+
+  // Logging in normally now has to be the route to onboarding.
+  await page.goto("/login");
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password").fill("correct horse");
+  await page.getByRole("button", { name: "Log in" }).click();
+  await expect(page).toHaveURL(/\/onboarding/);
+
+  // Skipping is remembered, so the next login goes straight to the feed.
+  await page.getByRole("button", { name: "Skip for now" }).click();
+  await expect(page).toHaveURL(/\/$/);
 });

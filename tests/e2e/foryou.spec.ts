@@ -123,7 +123,7 @@ test("the reading history follows the account and the sliders can be set", async
   const email = uniqueEmail("foryou");
   await createConfirmedUser(page, email);
   await expect(page).toHaveURL(/\/onboarding/);
-  await page.getByRole("link", { name: "Skip for now" }).click();
+  await page.getByRole("button", { name: "Skip for now" }).click();
 
   // Read and save two language model papers.
   await expect(cards(page)).toHaveCount(12);
